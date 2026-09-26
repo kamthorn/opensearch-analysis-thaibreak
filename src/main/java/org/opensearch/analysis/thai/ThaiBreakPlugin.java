@@ -14,6 +14,8 @@
 package org.opensearch.analysis.thai;
 
 import org.opensearch.index.analysis.AnalyzerProvider;
+import org.opensearch.index.analysis.CharFilterFactory;
+import org.opensearch.index.analysis.TokenFilterFactory;
 import org.opensearch.index.analysis.TokenizerFactory;
 import org.opensearch.indices.analysis.AnalysisModule;
 import org.opensearch.plugins.AnalysisPlugin;
@@ -28,6 +30,8 @@ import java.util.Map;
  * <ul>
  *   <li>Tokenizer type {@code thaibreak} → {@link ThaiBreakTokenizerFactory}</li>
  *   <li>Analyzer type {@code thaibreak} → {@link ThaiBreakAnalyzerProvider}</li>
+ *   <li>CharFilter type {@code thaibreak_keyboard}, {@code thai_keyboard} → {@link ThaiKeyboardCharFilterFactory}</li>
+ *   <li>TokenFilter type {@code thaibreak_keyboard}, {@code thai_keyboard} → {@link ThaiKeyboardTokenFilterFactory}</li>
  * </ul>
  *
  * <p>Example usage in index settings:
@@ -71,6 +75,22 @@ public final class ThaiBreakPlugin extends Plugin implements AnalysisPlugin {
             (AnalysisModule.AnalysisProvider<AnalyzerProvider<?>>)
                 (indexSettings, env, name, settings) ->
                     new ThaiBreakAnalyzerProvider(indexSettings, env, name, settings)
+        );
+    }
+
+    @Override
+    public Map<String, AnalysisModule.AnalysisProvider<CharFilterFactory>> getCharFilters() {
+        return Map.of(
+            "thaibreak_keyboard", ThaiKeyboardCharFilterFactory::new,
+            "thai_keyboard", ThaiKeyboardCharFilterFactory::new
+        );
+    }
+
+    @Override
+    public Map<String, AnalysisModule.AnalysisProvider<TokenFilterFactory>> getTokenFilters() {
+        return Map.of(
+            "thaibreak_keyboard", ThaiKeyboardTokenFilterFactory::new,
+            "thai_keyboard", ThaiKeyboardTokenFilterFactory::new
         );
     }
 }

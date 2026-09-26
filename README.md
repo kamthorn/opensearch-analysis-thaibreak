@@ -83,6 +83,41 @@ Just like `analysis-nori` and `analysis-kuromoji`, `thaibreak` supports compound
 | `discard` | Decompose compound words into parts and discard the compound. | `["สนาม", "บิน"]` | Simple sub-word matching |
 | `mixed` | Emit **both** the compound token and its sub-tokens as a **Token Graph** with overlapping positions. | `สนามบิน` (posLen: 2), `สนาม` (posInc: 0), `บิน` (posInc: 1) | **Index time** / High recall + Phrase search |
 
+### Keyboard Mis-typing Filters (`thaibreak_keyboard`)
+
+Allows auto-correcting and matching queries typed without switching keyboard layout:
+- **`char_filter: thaibreak_keyboard`**: Pre-tokenization stream conversion (e.g. `l;ylfu` &rarr; `สวัสดี`). Ideal for query analyzers before tokenization so that words can be properly segmented.
+- **`token_filter: thaibreak_keyboard`**: Token-level synonym emission (e.g. emits original `l;ylfu` with `posInc=1` and converted `สวัสดี` with `posInc=0`).
+
+#### Parameters:
+- `direction`: `qwerty_to_kedmanee` (default), `kedmanee_to_qwerty`, or `both` (token filter only).
+- `keep_original`: `true` (default for token filter) or `false`.
+- `min_term_length`: Minimum length of term to convert (token filter only, default: `1`).
+
+```json
+PUT /thai-keyboard-index
+{
+  "settings": {
+    "analysis": {
+      "filter": {
+        "thai_keyboard_synonyms": {
+          "type": "thaibreak_keyboard",
+          "direction": "both",
+          "keep_original": true
+        }
+      },
+      "analyzer": {
+        "thai_search": {
+          "type": "custom",
+          "tokenizer": "thaibreak",
+          "filter": ["lowercase", "thai_keyboard_synonyms"]
+        }
+      }
+    }
+  }
+}
+```
+
 ## Building from source
 
 ```bash
