@@ -60,6 +60,11 @@ validateNebulaPom.enabled = false
 // REST/integ coverage exists.
 testingConventions.enabled = false
 
+// Exclude standalone benchmark runner from test forbiddenApis checks
+tasks.named('forbiddenApisTest').configure {
+    exclude '**/benchmark/**'
+}
+
 buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "3.8.0")
@@ -110,4 +115,11 @@ testClusters.integTest {
 
 run {
     useCluster testClusters.integTest
+}
+
+task benchmark(type: JavaExec) {
+    description = "Run Thai segmentation and tokenization performance benchmarks"
+    group = "Verification"
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "org.opensearch.analysis.thai.benchmark.ThaiTokenizerBenchmark"
 }

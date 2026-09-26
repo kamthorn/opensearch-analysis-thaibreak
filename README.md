@@ -181,6 +181,48 @@ COVID-19
 
 Lines starting with `#` are ignored. Weight defaults to `1.0`.
 
+## Performance Benchmark
+
+To run the performance benchmark harness on your machine:
+
+```bash
+./gradlew benchmark
+```
+
+Empirical results measured on Linux amd64 (JDK 25, 20,000 iterations per workload):
+
+### Workload 1: Short Query (23 chars - Search Query)
+
+| Tokenizer Implementation | Tokens | Throughput | Mean Latency | P50 Latency |
+|---|---|---|---|---|
+| **Lucene ThaiTokenizer (BreakIterator)** | 7 | 407,372 op/s | 2.45 µs | 0.85 µs |
+| **`thaibreak` (`decompound=none`)** | 6 | **121,166 op/s** | **8.25 µs** | **7.32 µs** |
+| **`thaibreak` (`decompound=mixed`)** | 12 | **87,379 op/s** | **11.44 µs** | **10.45 µs** |
+| **`thaibreak` (`decompound=discard`)** | 9 | **83,025 op/s** | **12.04 µs** | **11.05 µs** |
+
+### Workload 2: Medium Paragraph (157 chars)
+
+| Tokenizer Implementation | Tokens | Throughput | Mean Latency | P50 Latency |
+|---|---|---|---|---|
+| **Lucene ThaiTokenizer (BreakIterator)** | 27 | 167,478 op/s | 5.97 µs | 3.32 µs |
+| **`thaibreak` (`decompound=none`)** | 27 | **22,622 op/s** | **44.21 µs** | **42.67 µs** |
+| **`thaibreak` (`decompound=mixed`)** | 47 | **13,375 op/s** | **74.77 µs** | **72.56 µs** |
+| **`thaibreak` (`decompound=discard`)** | 37 | **13,391 op/s** | **74.68 µs** | **72.64 µs** |
+
+### Workload 3: Long Article (1,154 chars)
+
+| Tokenizer Implementation | Tokens | Throughput | Mean Latency | P50 Latency |
+|---|---|---|---|---|
+| **Lucene ThaiTokenizer (BreakIterator)** | 191 | 44,985 op/s | 22.23 µs | 21.87 µs |
+| **`thaibreak` (`decompound=none`)** | 202 | **2,310 op/s** | **432.95 µs** | **425.98 µs** |
+| **`thaibreak` (`decompound=mixed`)** | 282 | **1,703 op/s** | **587.13 µs** | **570.08 µs** |
+| **`thaibreak` (`decompound=discard`)** | 243 | **1,700 op/s** | **588.29 µs** | **578.13 µs** |
+
+### Ancillary Components Throughput
+
+- **`ThaiKeyboardConverter` (Kedmanee &harr; QWERTY)**: **18,380,000 ops/sec** (~54 ns/op)
+- **`ThaiSoundex` (Udom83 Phonetic)**: **260,000 ops/sec** (~3.8 µs/op)
+
 ## Known limitations
 
 - **Whole-field buffering**: segmentation is a global Viterbi shortest-path
