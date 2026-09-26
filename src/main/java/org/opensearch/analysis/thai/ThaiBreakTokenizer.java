@@ -66,10 +66,11 @@ public final class ThaiBreakTokenizer extends Tokenizer {
 
     /** Character offset of the next character in the reader's stream. */
     private int streamOffset = 0;
-    /** Whether we have accumulated text to segment. */
+    /** Whether the whole input has been read and tokenized. */
     private boolean done = false;
 
-    private static final int BUFFER_SIZE = 4096;
+    /** I/O read buffer size in chars; does not bound how much text is segmented at once. */
+    private static final int READ_BUFFER_SIZE = 4096;
 
     public ThaiBreakTokenizer(ThaiTrie trie) {
         this(trie, DecompoundMode.NONE);
@@ -84,12 +85,12 @@ public final class ThaiBreakTokenizer extends Tokenizer {
     public boolean incrementToken() throws IOException {
         clearAttributes();
 
-        while (tokenIndex >= pendingTokens.size()) {
-            if (done) return false;
-            if (!readNextChunk()) {
-                done = true;
-                return false;
-            }
+        if (!done) {
+            readAllAndTokenize();
+            done = true;
+        }
+        if (tokenIndex >= pendingTokens.size()) {
+            return false;
         }
 
         Token t = pendingTokens.get(tokenIndex++);
@@ -118,15 +119,23 @@ public final class ThaiBreakTokenizer extends Tokenizer {
 
     // -----------------------------------------------------------------------
 
-    /** Read one chunk of text from the reader and schedule its tokens. */
-    private boolean readNextChunk() throws IOException {
-        char[] buf = new char[BUFFER_SIZE];
+    /**
+     * Reads the entire remaining reader content and segments it in one pass.
+     *
+     * <p>The Viterbi DP is a global algorithm over its input, so segmenting
+     * fixed-size chunks independently would corrupt tokens that straddle a
+     * chunk boundary. The field text is already fully materialized before
+     * analysis (as with most non-streaming Lucene tokenizers), so buffering
+     * it here adds no meaningful extra cost.
+     */
+    private void readAllAndTokenize() throws IOException {
+        char[] buf = new char[READ_BUFFER_SIZE];
         StringBuilder sb = new StringBuilder();
         int n;
-        while (sb.length() < BUFFER_SIZE && (n = input.read(buf, 0, buf.length)) > 0) {
+        while ((n = input.read(buf, 0, buf.length)) > 0) {
             sb.append(buf, 0, n);
         }
-        if (sb.isEmpty()) return false;
+        if (sb.isEmpty()) return;
 
         List<String> rawTokens = engine.tokenize(sb.toString(), true /* keep whitespace for offsets */);
         pendingTokens.clear();
@@ -176,7 +185,6 @@ public final class ThaiBreakTokenizer extends Tokenizer {
                 }
             }
         }
-        return !pendingTokens.isEmpty();
     }
 
     private static String tokenType(String tok) {
