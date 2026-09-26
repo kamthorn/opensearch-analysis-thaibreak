@@ -66,11 +66,16 @@ public final class ThaiBreakTokenizer extends Tokenizer {
 
     /** Character offset of the next character in the reader's stream. */
     private int streamOffset = 0;
-    /** Whether the whole input has been read and tokenized. */
-    private boolean done = false;
+    /** Target buffer capacity in characters before finding a safe chunk cut. */
+    private static final int TARGET_CHUNK_SIZE = 8192;
+    /** Minimum chunk size to search for a safe boundary. */
+    private static final int MIN_SAFE_SPLIT_SIZE = 4096;
+    /** I/O read buffer size in characters. */
+    private static final int READ_IO_SIZE = 4096;
 
-    /** I/O read buffer size in chars; does not bound how much text is segmented at once. */
-    private static final int READ_BUFFER_SIZE = 4096;
+    private final StringBuilder charBuffer = new StringBuilder();
+    private final char[] ioBuf = new char[READ_IO_SIZE];
+    private boolean eof = false;
 
     public ThaiBreakTokenizer(ThaiTrie trie) {
         this(trie, DecompoundMode.NONE);
@@ -85,12 +90,10 @@ public final class ThaiBreakTokenizer extends Tokenizer {
     public boolean incrementToken() throws IOException {
         clearAttributes();
 
-        if (!done) {
-            readAllAndTokenize();
-            done = true;
-        }
-        if (tokenIndex >= pendingTokens.size()) {
-            return false;
+        while (tokenIndex >= pendingTokens.size()) {
+            if (!readNextBatch()) {
+                return false;
+            }
         }
 
         Token t = pendingTokens.get(tokenIndex++);
@@ -107,8 +110,9 @@ public final class ThaiBreakTokenizer extends Tokenizer {
         super.reset();
         pendingTokens.clear();
         tokenIndex = 0;
+        charBuffer.setLength(0);
         streamOffset = 0;
-        done = false;
+        eof = false;
     }
 
     @Override
@@ -120,32 +124,123 @@ public final class ThaiBreakTokenizer extends Tokenizer {
     // -----------------------------------------------------------------------
 
     /**
-     * Reads the entire remaining reader content and segments it in one pass.
-     *
-     * <p>The Viterbi DP is a global algorithm over its input, so segmenting
-     * fixed-size chunks independently would corrupt tokens that straddle a
-     * chunk boundary. The field text is already fully materialized before
-     * analysis (as with most non-streaming Lucene tokenizers), so buffering
-     * it here adds no meaningful extra cost.
+     * Reads the next batch of input using safe chunking, ensuring O(1) constant
+     * memory even on massive multi-megabyte documents without splitting words.
      */
-    private void readAllAndTokenize() throws IOException {
-        char[] buf = new char[READ_BUFFER_SIZE];
-        StringBuilder sb = new StringBuilder();
-        int n;
-        while ((n = input.read(buf, 0, buf.length)) > 0) {
-            sb.append(buf, 0, n);
-        }
-        if (sb.isEmpty()) return;
-
-        List<String> rawTokens = engine.tokenize(sb.toString(), true /* keep whitespace for offsets */);
+    private boolean readNextBatch() throws IOException {
         pendingTokens.clear();
         tokenIndex = 0;
 
+        // Accumulate up to TARGET_CHUNK_SIZE if not yet EOF
+        while (!eof && charBuffer.length() < TARGET_CHUNK_SIZE) {
+            int n = input.read(ioBuf, 0, ioBuf.length);
+            if (n == -1) {
+                eof = true;
+                break;
+            }
+            charBuffer.append(ioBuf, 0, n);
+        }
+
+        if (charBuffer.length() == 0) {
+            return false;
+        }
+
+        int cutLength;
+        if (eof) {
+            cutLength = charBuffer.length();
+        } else {
+            cutLength = findSafeCut(charBuffer, MIN_SAFE_SPLIT_SIZE, charBuffer.length());
+            if (cutLength <= 0) {
+                // If no safe boundary found within target, attempt reading slightly more
+                if (charBuffer.length() < 32768) {
+                    int n = input.read(ioBuf, 0, ioBuf.length);
+                    if (n == -1) {
+                        eof = true;
+                        cutLength = charBuffer.length();
+                    } else {
+                        charBuffer.append(ioBuf, 0, n);
+                        cutLength = findSafeCut(charBuffer, MIN_SAFE_SPLIT_SIZE, charBuffer.length());
+                    }
+                }
+                if (cutLength <= 0) {
+                    cutLength = charBuffer.length();
+                }
+            }
+        }
+
+        String slice = charBuffer.substring(0, cutLength);
+        charBuffer.delete(0, cutLength);
+
+        tokenizeChunk(slice, streamOffset);
+        streamOffset += cutLength;
+
+        return !pendingTokens.isEmpty() || !charBuffer.isEmpty() || !eof;
+    }
+
+    /**
+     * Finds a safe cutting point where a Thai word or cluster cannot straddle.
+     */
+    static int findSafeCut(StringBuilder sb, int minIdx, int maxIdx) {
+        int limit = Math.min(sb.length(), maxIdx);
+        int start = Math.max(1, minIdx);
+        if (start >= limit) return -1;
+
+        // Pass 1: Whitespace boundary (highest safety)
+        for (int i = limit; i >= start; i--) {
+            if (Character.isWhitespace(sb.charAt(i - 1))) {
+                return i;
+            }
+        }
+
+        // Pass 2: Punctuation boundary
+        for (int i = limit; i >= start; i--) {
+            if (isPunctuation(sb.charAt(i - 1))) {
+                return i;
+            }
+        }
+
+        // Pass 3: Script transition boundary (Thai <-> Non-Thai)
+        for (int i = limit - 1; i >= start; i--) {
+            boolean thaiBefore = isThai(sb.charAt(i - 1));
+            boolean thaiAfter = isThai(sb.charAt(i));
+            if (thaiBefore != thaiAfter) {
+                return i;
+            }
+        }
+
+        // Pass 4: TCC cluster boundary in dense Thai text
+        int[] runes = sb.substring(0, limit).codePoints().toArray();
+        boolean[] tcc = org.opensearch.analysis.thai.engine.ThaiTCC.validPositions(runes);
+        int minCp = sb.substring(0, start).codePointCount(0, start);
+        for (int i = runes.length - 1; i >= minCp; i--) {
+            if (tcc[i]) {
+                return sb.offsetByCodePoints(0, i);
+            }
+        }
+
+        return -1;
+    }
+
+    private static boolean isPunctuation(char c) {
+        return c == '.' || c == ',' || c == ';' || c == ':' || c == '!' || c == '?'
+            || c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}'
+            || c == '"' || c == '\'' || c == '/' || c == '\\' || c == '-' || c == '_'
+            || c == 'ฯ' || c == 'ๆ' || c == '๏' || c == '๚' || c == '๛';
+    }
+
+    private static boolean isThai(char c) {
+        return c >= 0x0E00 && c <= 0x0E7F;
+    }
+
+    private void tokenizeChunk(String chunk, int chunkBaseOffset) {
+        List<String> rawTokens = engine.tokenize(chunk, true /* keep whitespace for offsets */);
+        int relOffset = 0;
+
         for (String tok : rawTokens) {
-            int tokStart = streamOffset;
+            int tokStart = chunkBaseOffset + relOffset;
             int tokLen = tok.length();
-            streamOffset += tokLen;
-            int tokEnd = streamOffset;
+            relOffset += tokLen;
+            int tokEnd = chunkBaseOffset + relOffset;
 
             // Skip whitespace
             if (tok.isBlank()) {
