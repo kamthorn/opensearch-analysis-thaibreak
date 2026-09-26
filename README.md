@@ -198,6 +198,43 @@ PUT /thai-loose-index
 }
 ```
 
+### Thai Number & Digit Converter Filter (`thaibreak_number`)
+
+Converts Thai digits (`๐-๙`) and spelled-out Thai written number words (e.g. `หนึ่งแสนสองหมื่น`, `ห้าหมื่น`, `สามร้อย`, `สิบสอง`, `ยี่สิบเอ็ด`) into Arabic numbers (`120000`, `50000`, `300`, `12`, `21`):
+- Thai Digits: `๑๒๕๐` &rarr; `1250`, `ชั้น๓` &rarr; `ชั้น3`
+- Written Words: `ห้าหมื่น` &rarr; `50000`, `สองล้านสามแสน` &rarr; `2300000`
+- Multi-token Sequences: Emits graph token synonyms spanning the combined sequence with `posInc=0` and `posLen=N`.
+
+#### Parameters:
+- `keep_original`: `true` (default; emits converted number as synonym alongside original words) or `false` (replaces original).
+- `convert_digits`: `true` (default; converts `[๐-๙]` to `[0-9]`).
+- `convert_words`: `true` (default; converts spelled-out Thai words to Arabic numbers).
+- `min_word_value`: `0` (default; minimum numerical value for word conversion).
+
+```json
+PUT /thai-number-index
+{
+  "settings": {
+    "analysis": {
+      "filter": {
+        "thai_number_synonyms": {
+          "type": "thaibreak_number",
+          "keep_original": true
+        }
+      },
+      "analyzer": {
+        "thai_number_search": {
+          "type": "custom",
+          "tokenizer": "thaibreak",
+          "filter": ["lowercase", "thai_number_synonyms"]
+        }
+      }
+    }
+  }
+}
+```
+
+
 ## Building from source
 
 ```bash
