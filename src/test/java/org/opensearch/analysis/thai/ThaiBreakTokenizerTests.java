@@ -16,7 +16,6 @@ package org.opensearch.analysis.thai;
 import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
 import org.apache.lucene.analysis.Tokenizer;
 import org.junit.BeforeClass;
-import org.junit.Test;
 import static org.junit.Assert.*;
 import org.opensearch.analysis.thai.engine.ThaiDictionaryLoader;
 import org.opensearch.analysis.thai.engine.ThaiTrie;
@@ -44,7 +43,6 @@ public class ThaiBreakTokenizerTests extends BaseTokenStreamTestCase {
     // Basic Thai segmentation
     // -----------------------------------------------------------------------
 
-    @Test
     public void testBasicSegmentation() throws IOException {
         Tokenizer tok = newTokenizer();
         tok.setReader(new StringReader("คนไข้"));
@@ -52,7 +50,6 @@ public class ThaiBreakTokenizerTests extends BaseTokenStreamTestCase {
         assertTokenStreamContents(tok, new String[]{"คนไข้"});
     }
 
-    @Test
     public void testPhrase() throws IOException {
         Tokenizer tok = newTokenizer();
         tok.setReader(new StringReader("กินข้าวกับเพื่อน"));
@@ -61,7 +58,6 @@ public class ThaiBreakTokenizerTests extends BaseTokenStreamTestCase {
         assertTrue("Expected at least 3 tokens, got " + tokens.length, tokens.length >= 3);
     }
 
-    @Test
     public void testMixedThaLatin() throws IOException {
         Tokenizer tok = newTokenizer();
         tok.setReader(new StringReader("ภาษาไทย Thai language"));
@@ -74,7 +70,6 @@ public class ThaiBreakTokenizerTests extends BaseTokenStreamTestCase {
         assertTrue("Expected Latin token", hasLatin);
     }
 
-    @Test
     public void testMixedThaiAndNumber() throws IOException {
         Tokenizer tok = newTokenizer();
         tok.setReader(new StringReader("ราคา100บาท"));
@@ -82,14 +77,12 @@ public class ThaiBreakTokenizerTests extends BaseTokenStreamTestCase {
         assertTrue("Expected at least 3 tokens (ราคา, 100, บาท)", tokens.length >= 3);
     }
 
-    @Test
     public void testEmptyInput() throws IOException {
         Tokenizer tok = newTokenizer();
         tok.setReader(new StringReader(""));
         assertTokenStreamContents(tok, new String[]{});
     }
 
-    @Test
     public void testPureLatinPassthrough() throws IOException {
         Tokenizer tok = newTokenizer();
         tok.setReader(new StringReader("Hello World"));
@@ -99,7 +92,6 @@ public class ThaiBreakTokenizerTests extends BaseTokenStreamTestCase {
         assertTrue("Expected 'Hello' token", hasHello);
     }
 
-    @Test
     public void testKnownCompoundWord() throws IOException {
         // "คนไข้" should be in dict as a single word
         Tokenizer tok = newTokenizer();
@@ -110,7 +102,6 @@ public class ThaiBreakTokenizerTests extends BaseTokenStreamTestCase {
         assertTrue("Expected คนไข้ as a single token", found);
     }
 
-    @Test
     public void testResetWorks() throws IOException {
         Tokenizer tok = newTokenizer();
         tok.setReader(new StringReader("สวัสดี"));
@@ -123,7 +114,6 @@ public class ThaiBreakTokenizerTests extends BaseTokenStreamTestCase {
     // OOV (out-of-vocabulary) handling
     // -----------------------------------------------------------------------
 
-    @Test
     public void testOovWord() throws IOException {
         // A random invented word should still come out as some token
         Tokenizer tok = newTokenizer();
@@ -153,14 +143,12 @@ public class ThaiBreakTokenizerTests extends BaseTokenStreamTestCase {
     // Decompound Mode tests (NONE, DISCARD, MIXED)
     // -----------------------------------------------------------------------
 
-    @Test
     public void testDecompoundModeNone() throws IOException {
         Tokenizer tok = new ThaiBreakTokenizer(trie, DecompoundMode.NONE);
         tok.setReader(new StringReader("สนามบิน"));
         assertTokenStreamContents(tok, new String[]{"สนามบิน"}, new int[]{0}, new int[]{7});
     }
 
-    @Test
     public void testDecompoundModeDiscard() throws IOException {
         Tokenizer tok = new ThaiBreakTokenizer(trie, DecompoundMode.DISCARD);
         tok.setReader(new StringReader("สนามบิน"));
@@ -173,7 +161,6 @@ public class ThaiBreakTokenizerTests extends BaseTokenStreamTestCase {
         );
     }
 
-    @Test
     public void testDecompoundModeMixed() throws IOException {
         Tokenizer tok = new ThaiBreakTokenizer(trie, DecompoundMode.MIXED);
         tok.setReader(new StringReader("สนามบิน"));

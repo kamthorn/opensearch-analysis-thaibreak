@@ -54,6 +54,9 @@ loggerUsageCheck.enabled = false
 // No need to validate pom, as we do not upload to maven/sonatype
 validateNebulaPom.enabled = false
 
+// Disable testingConventions as integTest and yamlRestTest have no test suites yet
+testingConventions.enabled = false
+
 buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "3.8.0")
