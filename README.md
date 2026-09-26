@@ -1,5 +1,7 @@
 # opensearch-analysis-thaibreak
 
+[![Release](https://img.shields.io/github/v/release/kamthorn/opensearch-analysis-thaibreak?color=brightgreen)](https://github.com/kamthorn/opensearch-analysis-thaibreak/releases)
+
 OpenSearch Analysis Plugin for the Thai language — powered by the **Viterbi + TCC** segmentation engine from [thai-break](https://github.com/kamthorn/thai-break).
 
 ## Features
@@ -334,8 +336,21 @@ Empirical results measured on Linux amd64 (JDK 25, 20,000 iterations per workloa
   a compound into parts that are themselves already in the dictionary; they
   won't decompose a genuinely unknown compound.
 
+## Apache Lucene Upstream
+
+ฟีเจอร์หลักของ plugin นี้กำลังอยู่ระหว่างพิจารณาเพื่อรวมเข้า **Apache Lucene Core**:
+
+| PR | หัวข้อ | สถานะ |
+|---|---|---|
+| [#16717](https://github.com/apache/lucene/pull/16717) | ThaiCharFilter + ThaiNormalizer | Under Review |
+| [#16718](https://github.com/apache/lucene/pull/16718) | Modern Thai Stopwords | Under Review |
+| [#16720](https://github.com/apache/lucene/pull/16720) | ThaiRepeatFilter + OffsetAttribute fix | Under Review |
+| [#16722](https://github.com/apache/lucene/pull/16722) | User Dictionary Support | Under Review |
+
 ## License
 
 Apache-2.0 — see [LICENSE.txt](LICENSE.txt).
 
 Dictionary and core segmentation engine derived from [thai-break](https://github.com/kamthorn/thai-break) (Apache-2.0).
+
+> 📋 **Changelog:** ดูประวัติการเปลี่ยนแปลงทั้งหมดที่ [CHANGELOG.md](CHANGELOG.md)
