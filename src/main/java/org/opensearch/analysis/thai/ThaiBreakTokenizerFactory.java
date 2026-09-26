@@ -36,8 +36,12 @@ import java.nio.file.Path;
  *   <tr>
  *     <td>{@code user_dictionary}</td>
  *     <td>(none)</td>
- *     <td>Path to a custom word list relative to the OpenSearch config directory.
- *         Same TSV format as the bundled dictionary.</td>
+ *     <td>Path to a custom word list relative to the OpenSearch config directory.</td>
+ *   </tr>
+ *   <tr>
+ *     <td>{@code decompound_mode}</td>
+ *     <td>{@code none}</td>
+ *     <td>Compound word decompounding mode: {@code none}, {@code discard}, or {@code mixed}.</td>
  *   </tr>
  * </table>
  *
@@ -48,6 +52,7 @@ import java.nio.file.Path;
  *     "tokenizer": {
  *       "my_thaibreak": {
  *         "type": "thaibreak",
+ *         "decompound_mode": "mixed",
  *         "user_dictionary": "analysis/my-thai-dict.txt"
  *       }
  *     }
@@ -59,6 +64,7 @@ public final class ThaiBreakTokenizerFactory implements TokenizerFactory {
 
     private final String name;
     private final ThaiTrie trie;
+    private final DecompoundMode mode;
 
     /**
      * Constructor called by the OpenSearch analysis module.
@@ -73,6 +79,7 @@ public final class ThaiBreakTokenizerFactory implements TokenizerFactory {
                                      String name,
                                      Settings settings) {
         this.name = name;
+        this.mode = DecompoundMode.fromString(settings.get("decompound_mode", "none"));
 
         ThaiTrie t;
         try {
@@ -103,6 +110,6 @@ public final class ThaiBreakTokenizerFactory implements TokenizerFactory {
 
     @Override
     public Tokenizer create() {
-        return new ThaiBreakTokenizer(trie);
+        return new ThaiBreakTokenizer(trie, mode);
     }
 }

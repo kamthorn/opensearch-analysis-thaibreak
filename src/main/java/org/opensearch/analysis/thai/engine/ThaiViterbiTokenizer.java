@@ -298,6 +298,72 @@ public final class ThaiViterbiTokenizer {
         return s.codePoints().allMatch(ThaiViterbiTokenizer::isThaiRune);
     }
 
+    /**
+     * Attempts to decompose a compound word into two or more dictionary words.
+     *
+     * @param word the compound word to decompose
+     * @return a list of sub-words if the word can be decomposed into two or more
+     *         dictionary words; {@code null} if the word is not a compound word.
+     */
+    public List<String> decompose(String word) {
+        if (word == null || word.length() < 3) return null;
+        int[] runes = word.codePoints().toArray();
+        int n = runes.length;
+        if (n < 3) return null;
+        if (!isThaiRune(runes[0])) return null;
+
+        boolean[] validPos = ThaiTCC.validPositions(runes);
+
+        double normalizer = trie.totalWeight() + 1.0;
+        double[] dp = new double[n + 1];
+        int[] from = new int[n + 1];
+        String[] partWord = new String[n + 1];
+        Arrays.fill(dp, Double.POSITIVE_INFINITY);
+        Arrays.fill(from, -1);
+        dp[0] = 0.0;
+
+        for (int i = 0; i < n; i++) {
+            if (!validPos[i] || Double.isInfinite(dp[i])) continue;
+
+            for (ThaiTrie.PrefixMatch m : trie.prefixes(runes, i, 25)) {
+                int j = m.end;
+                // Disallow the single edge covering the entire word from 0 to n!
+                if (i == 0 && j == n) {
+                    continue;
+                }
+                if (j <= n && validPos[j]) {
+                    double cost = Math.log(normalizer / m.weight);
+                    double newCost = dp[i] + cost;
+                    if (newCost < dp[j] - TIE_EPSILON) {
+                        dp[j] = newCost;
+                        from[j] = i;
+                        partWord[j] = new String(runes, i, j - i);
+                    }
+                }
+            }
+        }
+
+        if (Double.isInfinite(dp[n])) {
+            return null;
+        }
+
+        List<String> parts = new ArrayList<>();
+        int curr = n;
+        while (curr > 0) {
+            int prev = from[curr];
+            if (prev < 0) return null;
+            parts.add(partWord[curr]);
+            curr = prev;
+        }
+
+        if (parts.size() <= 1) {
+            return null;
+        }
+
+        java.util.Collections.reverse(parts);
+        return parts;
+    }
+
     private static int countChar(String s, char c) {
         int cnt = 0;
         for (int i = 0; i < s.length(); i++) {
