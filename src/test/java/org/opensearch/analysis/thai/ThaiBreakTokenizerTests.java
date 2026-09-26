@@ -123,6 +123,42 @@ public class ThaiBreakTokenizerTests extends BaseTokenStreamTestCase {
     }
 
     // -----------------------------------------------------------------------
+    // Long input (regression: must not corrupt tokens at internal read-buffer
+    // boundaries, e.g. the old fixed 4096-char chunk split)
+    // -----------------------------------------------------------------------
+
+    public void testLongInputDoesNotCorruptTokenAtOldChunkBoundary() throws IOException {
+        String filler = "การทดสอบระบบตัดคำภาษาไทยที่ยาวมากเพื่อดูว่าการแบ่งชิ้นข้อความจะทำให้เกิดปัญหาหรือไม่ ";
+        StringBuilder sb = new StringBuilder();
+        while (sb.length() < 4090) {
+            sb.append(filler);
+        }
+        sb.setLength(4090); // land the compound word right across the old 4096 boundary
+        sb.append("โรงพยาบาลศิริราช");
+        sb.append(filler);
+
+        Tokenizer tok = newTokenizer();
+        tok.setReader(new StringReader(sb.toString()));
+        String[] tokens = consumeTokens(tok);
+
+        boolean intact = false;
+        for (String t : tokens) {
+            if (t.equals("โรงพยาบาลศิริราช") || t.equals("โรงพยาบาล")) {
+                intact = true;
+                break;
+            }
+        }
+        assertTrue("Expected โรงพยาบาล(ศิริราช) to survive intact across a >4096 char input, got: "
+            + java.util.Arrays.toString(tokens), intact);
+
+        // No single isolated Thai consonant tokens (a symptom of a mid-cluster chunk cut)
+        for (String t : tokens) {
+            assertFalse("Unexpected single-character garbage token: " + t, t.codePointCount(0, t.length()) == 1
+                && t.codePointAt(0) >= 0x0E01 && t.codePointAt(0) <= 0x0E2E);
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Helper
     // -----------------------------------------------------------------------
 
