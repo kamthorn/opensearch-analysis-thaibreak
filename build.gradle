@@ -11,6 +11,7 @@ def pluginDescription = 'Thai word segmentation analysis plugin using Viterbi+TC
 def packagePath = 'org.opensearch.analysis.thai'
 def pluginClassName = 'ThaiBreakPlugin'
 group = "org.opensearch.analysis"
+version = "${opensearch_version}.0"
 
 java {
     targetCompatibility = JavaVersion.VERSION_21

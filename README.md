@@ -21,11 +21,22 @@ OpenSearch Analysis Plugin for the Thai language — powered by the **Viterbi + 
 | Compound words | Varies by JRE | Frequency-weighted |
 | Dictionary size | Varies by JRE | 25,907 words |
 
-## Installation
+## Installation & One-Click Docker
+
+### Run with Docker Compose (Instant Evaluation)
 
 ```bash
-bin/opensearch-plugin install file:///path/to/opensearch-analysis-thaibreak-3.8.0.0.zip
+docker compose up -d
+./docker/test-search.sh
 ```
+
+### Install into existing OpenSearch
+
+```bash
+bin/opensearch-plugin install file:///path/to/analysis-thaibreak-3.8.0.0.zip
+```
+
+> For full architectural benchmarks, mathematical formulation, and Lucene upstream integration details, see the [Thai Search Whitepaper](docs/THAI_SEARCH_WHITEPAPER.md).
 
 ## Usage
 
