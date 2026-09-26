@@ -32,8 +32,23 @@ docker compose up -d
 
 ### Install into existing OpenSearch
 
+From GitHub Releases (Direct HTTPS URL — no compilation needed):
+
 ```bash
-bin/opensearch-plugin install file:///path/to/analysis-thaibreak-3.8.0.0.zip
+# OpenSearch 2.18.0
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.0.0/analysis-thaibreak-2.18.0.0.zip
+
+# OpenSearch 2.17.1
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.0.0/analysis-thaibreak-2.17.1.0.zip
+
+# OpenSearch 2.15.0
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.0.0/analysis-thaibreak-2.15.0.0.zip
+```
+
+Or from local ZIP:
+
+```bash
+bin/opensearch-plugin install file:///path/to/analysis-thaibreak-2.18.0.0.zip
 ```
 
 > For full architectural benchmarks, mathematical formulation, and Lucene upstream integration details, see the [Thai Search Whitepaper](docs/THAI_SEARCH_WHITEPAPER.md).

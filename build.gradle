@@ -124,3 +124,43 @@ task benchmark(type: JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "org.opensearch.analysis.thai.benchmark.ThaiTokenizerBenchmark"
 }
+
+def targetOpenSearchVersions = ['2.11.1', '2.15.0', '2.17.1', '2.18.0', '2.19.0', '3.8.0']
+
+task packageAllDistributions {
+    description = "Packages plugin ZIPs for all targeted OpenSearch versions"
+    group = "Distribution"
+    dependsOn tasks.jar
+
+    doLast {
+        def distDir = file("${buildDir}/distributions")
+        distDir.mkdirs()
+
+        targetOpenSearchVersions.each { osVer ->
+            def pluginVer = "${osVer}.0"
+            def zipFile = file("${distDir}/analysis-thaibreak-${pluginVer}.zip")
+            def tempDescDir = file("${buildDir}/tmp/desc-${osVer}")
+            tempDescDir.mkdirs()
+            def descFile = file("${tempDescDir}/plugin-descriptor.properties")
+            descFile.text = """description=${pluginDescription}
+version=${pluginVer}
+name=${pluginName}
+classname=${packagePath}.${pluginClassName}
+java.version=21
+opensearch.version=${osVer}
+has.native.controller=false
+"""
+
+            ant.zip(destfile: zipFile) {
+                fileset(file: descFile)
+                fileset(file: tasks.jar.archiveFile.get().asFile) {
+                    filename(name: tasks.jar.archiveFile.get().asFile.name)
+                }
+                fileset(file: rootProject.file('LICENSE.txt'))
+                fileset(file: rootProject.file('NOTICE.txt'))
+            }
+            logger.lifecycle("Created distribution ZIP: ${zipFile.name}")
+        }
+    }
+}
+
