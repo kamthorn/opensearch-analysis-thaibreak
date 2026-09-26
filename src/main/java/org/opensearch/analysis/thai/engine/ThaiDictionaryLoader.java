@@ -95,4 +95,35 @@ public final class ThaiDictionaryLoader {
         }
         return trie;
     }
+
+    /**
+     * Loads additional words from an iterable of lines into an existing (or new) trie.
+     * Useful for inline {@code user_dictionary_rules}.
+     * Lines starting with {@code #} and blank lines are ignored.
+     * Each line is: {@code word} or {@code word\tweight}.
+     *
+     * @param lines  iterable of dictionary lines
+     * @param trie   target trie to populate
+     * @return the same trie instance
+     */
+    public static ThaiTrie loadFromLines(Iterable<String> lines, ThaiTrie trie) {
+        if (lines == null) return trie;
+        for (String line : lines) {
+            if (line == null) continue;
+            line = line.strip();
+            if (line.isEmpty() || line.startsWith("#")) continue;
+            String[] parts = line.split("\\t", 2);
+            String word = parts[0].strip();
+            if (word.isEmpty()) continue;
+            double weight = 1.0;
+            if (parts.length >= 2) {
+                try {
+                    double w = Double.parseDouble(parts[1].strip());
+                    if (w > 0) weight = w;
+                } catch (NumberFormatException ignored) { /* keep default */ }
+            }
+            trie.add(word, weight);
+        }
+        return trie;
+    }
 }
