@@ -140,4 +140,16 @@ public final class ThaiTrie {
         long count = prefixMap.values().stream().filter(v -> v > 0.0).count();
         return (int) count;
     }
+
+    /**
+     * Checks if the exact word exists in the dictionary.
+     *
+     * @param word word to check
+     * @return {@code true} if word exists
+     */
+    public boolean contains(String word) {
+        if (word == null || word.isEmpty()) return false;
+        Double w = prefixMap.get(word);
+        return w != null && w > 0.0;
+    }
 }

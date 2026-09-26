@@ -25,6 +25,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * OpenSearch {@link TokenizerFactory} for the {@code thaibreak} tokenizer.
@@ -36,7 +38,12 @@ import java.nio.file.Path;
  *   <tr>
  *     <td>{@code user_dictionary}</td>
  *     <td>(none)</td>
- *     <td>Path to a custom word list relative to the OpenSearch config directory.</td>
+ *     <td>Path (or comma-separated paths) to custom word list(s) relative to the OpenSearch config directory.</td>
+ *   </tr>
+ *   <tr>
+ *     <td>{@code user_dictionary_rules}</td>
+ *     <td>(none)</td>
+ *     <td>Inline list of custom words/weights in the index settings.</td>
  *   </tr>
  *   <tr>
  *     <td>{@code decompound_mode}</td>
@@ -53,7 +60,8 @@ import java.nio.file.Path;
  *       "my_thaibreak": {
  *         "type": "thaibreak",
  *         "decompound_mode": "mixed",
- *         "user_dictionary": "analysis/my-thai-dict.txt"
+ *         "user_dictionary": "analysis/my-thai-dict.txt",
+ *         "user_dictionary_rules": ["คำเฉพาะ 10.0", "คำใหม่"]
  *       }
  *     }
  *   }
@@ -63,8 +71,10 @@ import java.nio.file.Path;
 public final class ThaiBreakTokenizerFactory implements TokenizerFactory {
 
     private final String name;
-    private final ThaiTrie trie;
+    private final Environment env;
+    private final Settings settings;
     private final DecompoundMode mode;
+    private final AtomicReference<ThaiTrie> trieRef;
 
     /**
      * Constructor called by the OpenSearch analysis module.
@@ -79,25 +89,70 @@ public final class ThaiBreakTokenizerFactory implements TokenizerFactory {
                                      String name,
                                      Settings settings) {
         this.name = name;
+        this.env = env;
+        this.settings = settings;
         this.mode = DecompoundMode.fromString(settings.get("decompound_mode", "none"));
+        this.trieRef = new AtomicReference<>(loadTrie(env, settings));
+    }
 
+    /**
+     * Loads the trie with default dictionary, optional external file(s), and inline rules.
+     *
+     * @param env      environment
+     * @param settings settings
+     * @return populated {@link ThaiTrie}
+     */
+    public static ThaiTrie loadTrie(Environment env, Settings settings) {
         ThaiTrie t = ThaiDictionaryLoader.loadDefault();
 
-        // Optional user dictionary: copy-on-write so this index's additions
-        // never leak into the shared default trie used by other indices.
         String userDictPath = settings.get("user_dictionary");
-        if (userDictPath != null && !userDictPath.isBlank()) {
+        List<String> rules = settings.getAsList("user_dictionary_rules", null);
+
+        if ((userDictPath != null && !userDictPath.isBlank()) || (rules != null && !rules.isEmpty())) {
             t = t.copy();
-            Path dictPath = env.configDir().resolve(userDictPath);
-            try (InputStream is = Files.newInputStream(dictPath)) {
-                ThaiDictionaryLoader.loadFromStream(is, t);
-            } catch (IOException e) {
-                throw new RuntimeException(
-                    "Failed to load user dictionary: " + dictPath, e);
+        }
+
+        if (userDictPath != null && !userDictPath.isBlank()) {
+            String[] paths = userDictPath.split(",");
+            for (String p : paths) {
+                p = p.strip();
+                if (p.isEmpty()) continue;
+                Path dictPath = (env != null && env.configDir() != null)
+                    ? env.configDir().resolve(p)
+                    : Path.of(p);
+                if (Files.exists(dictPath)) {
+                    try (InputStream is = Files.newInputStream(dictPath)) {
+                        ThaiDictionaryLoader.loadFromStream(is, t);
+                    } catch (IOException e) {
+                        throw new RuntimeException("Failed to load user dictionary: " + dictPath, e);
+                    }
+                } else {
+                    throw new IllegalArgumentException("User dictionary file not found: " + dictPath);
+                }
             }
         }
 
-        this.trie = t;
+        if (rules != null && !rules.isEmpty()) {
+            ThaiDictionaryLoader.loadFromLines(rules, t);
+        }
+
+        return t;
+    }
+
+    /**
+     * Reloads the user dictionary dynamically from disk and updates the active trie.
+     */
+    public synchronized void reload() {
+        this.trieRef.set(loadTrie(env, settings));
+    }
+
+    /**
+     * Returns the currently active {@link ThaiTrie}.
+     *
+     * @return active trie
+     */
+    public ThaiTrie getTrie() {
+        return trieRef.get();
     }
 
     @Override
@@ -107,6 +162,6 @@ public final class ThaiBreakTokenizerFactory implements TokenizerFactory {
 
     @Override
     public Tokenizer create() {
-        return new ThaiBreakTokenizer(trie, mode);
+        return new ThaiBreakTokenizer(trieRef.get(), mode);
     }
 }

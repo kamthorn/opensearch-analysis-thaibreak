@@ -48,7 +48,7 @@ PUT /my-index
 
 ### Custom tokenizer with user dictionary
 
-Place your word list at `config/analysis/my-words.txt` (one word per line, optional `\t<weight>`):
+Place your word list at `config/analysis/my-words.txt` (one word per line, optional `\t<weight>`), or specify inline rules directly in index settings with `user_dictionary_rules`:
 
 ```json
 PUT /my-index
@@ -59,7 +59,11 @@ PUT /my-index
         "thai_custom": {
           "type": "thaibreak",
           "decompound_mode": "mixed",
-          "user_dictionary": "analysis/my-words.txt"
+          "user_dictionary": "analysis/my-words.txt",
+          "user_dictionary_rules": [
+            "ซูเปอร์คอมพิวเตอร์",
+            "ดีพเลิร์นนิง\t10.0"
+          ]
         }
       },
       "analyzer": {
@@ -71,6 +75,14 @@ PUT /my-index
     }
   }
 }
+```
+
+#### Dynamic Dictionary Reloading
+
+When you update custom dictionary files on disk, you can reload search analyzers without restarting the cluster:
+
+```http
+POST /my-index/_reload_search_analyzers
 ```
 
 ### Decompounding Modes (`decompound_mode`)
