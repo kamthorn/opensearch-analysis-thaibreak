@@ -92,7 +92,9 @@ public final class ThaiBreakPlugin extends Plugin implements AnalysisPlugin {
             "thaibreak_keyboard", ThaiKeyboardTokenFilterFactory::new,
             "thai_keyboard", ThaiKeyboardTokenFilterFactory::new,
             "thaibreak_soundex", ThaiSoundexTokenFilterFactory::new,
-            "thai_soundex", ThaiSoundexTokenFilterFactory::new
+            "thai_soundex", ThaiSoundexTokenFilterFactory::new,
+            "thaibreak_tone", ThaiToneFilterFactory::new,
+            "thai_tone", ThaiToneFilterFactory::new
         );
     }
 }
