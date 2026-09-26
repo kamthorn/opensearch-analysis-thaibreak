@@ -58,6 +58,7 @@ PUT /my-index
       "tokenizer": {
         "thai_custom": {
           "type": "thaibreak",
+          "decompound_mode": "mixed",
           "user_dictionary": "analysis/my-words.txt"
         }
       },
@@ -71,6 +72,16 @@ PUT /my-index
   }
 }
 ```
+
+### Decompounding Modes (`decompound_mode`)
+
+Just like `analysis-nori` and `analysis-kuromoji`, `thaibreak` supports compound word decomposition:
+
+| Mode | Behavior | Example (`สนามบิน`) | Recommended For |
+|---|---|---|---|
+| `none` (default) | Do not decompose compound words. | `["สนามบิน"]` | Search time / High precision |
+| `discard` | Decompose compound words into parts and discard the compound. | `["สนาม", "บิน"]` | Simple sub-word matching |
+| `mixed` | Emit **both** the compound token and its sub-tokens as a **Token Graph** with overlapping positions. | `สนามบิน` (posLen: 2), `สนาม` (posInc: 0), `บิน` (posInc: 1) | **Index time** / High recall + Phrase search |
 
 ## Building from source
 

@@ -26,7 +26,7 @@ import org.opensearch.analysis.thai.engine.ThaiTrie;
  *
  * <p>Pipeline:
  * <ol>
- *   <li>{@link ThaiBreakTokenizer} — Viterbi word segmentation</li>
+ *   <li>{@link ThaiBreakTokenizer} — Viterbi word segmentation + optional decompounding</li>
  *   <li>{@link LowerCaseFilter} — lowercase Latin letters</li>
  *   <li>{@link StopFilter} — optional stop words</li>
  * </ol>
@@ -35,22 +35,28 @@ public final class ThaiBreakAnalyzer extends Analyzer {
 
     private final ThaiTrie trie;
     private final CharArraySet stopWords;
+    private final DecompoundMode mode;
 
     /** Creates an analyzer with the provided dictionary and no stop words. */
     public ThaiBreakAnalyzer(ThaiTrie trie) {
-        this.trie = trie;
-        this.stopWords = CharArraySet.EMPTY_SET;
+        this(trie, CharArraySet.EMPTY_SET, DecompoundMode.NONE);
     }
 
-    /** Creates an analyzer with a custom stop-word set. */
-    public ThaiBreakAnalyzer(ThaiTrie trie, CharArraySet stopWords) {
+    /** Creates an analyzer with the provided dictionary and decompound mode. */
+    public ThaiBreakAnalyzer(ThaiTrie trie, DecompoundMode mode) {
+        this(trie, CharArraySet.EMPTY_SET, mode);
+    }
+
+    /** Creates an analyzer with a custom stop-word set and decompound mode. */
+    public ThaiBreakAnalyzer(ThaiTrie trie, CharArraySet stopWords, DecompoundMode mode) {
         this.trie = trie;
         this.stopWords = stopWords == null ? CharArraySet.EMPTY_SET : stopWords;
+        this.mode = mode == null ? DecompoundMode.NONE : mode;
     }
 
     @Override
     protected TokenStreamComponents createComponents(String fieldName) {
-        Tokenizer tokenizer = new ThaiBreakTokenizer(trie);
+        Tokenizer tokenizer = new ThaiBreakTokenizer(trie, mode);
         TokenStream stream = new LowerCaseFilter(tokenizer);
         if (!stopWords.isEmpty()) {
             stream = new StopFilter(stream, stopWords);

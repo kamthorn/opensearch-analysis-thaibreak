@@ -121,4 +121,24 @@ public class ThaiViterbiTokenizerTests {
         assertEquals(text, String.join("", tokens));
         assertTrue("Expected ≥ 5 tokens for long sentence", tokens.size() >= 5);
     }
+
+    @Test
+    public void testDecompose() {
+        // Compound word with both parts in dictionary: สนามบิน -> สนาม, บิน
+        List<String> parts = tok().decompose("สนามบิน");
+        assertNotNull("Expected สนามบิน to decompose", parts);
+        assertEquals(List.of("สนาม", "บิน"), parts);
+
+        // Another compound word: คนไข้ -> คน, ไข้
+        List<String> parts2 = tok().decompose("คนไข้");
+        assertNotNull("Expected คนไข้ to decompose", parts2);
+        assertEquals(List.of("คน", "ไข้"), parts2);
+
+        // Non-compound word: สวัสดี -> null
+        assertNull("Non-compound word should return null", tok().decompose("สวัสดี"));
+
+        // Short words
+        assertNull(tok().decompose("กบ"));
+        assertNull(tok().decompose(null));
+    }
 }

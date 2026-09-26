@@ -33,6 +33,8 @@ import java.nio.file.Path;
  * <ul>
  *   <li>{@code user_dictionary} — optional path (relative to config dir) for
  *       a custom word list in TSV format.</li>
+ *   <li>{@code decompound_mode} — compound word decompounding mode:
+ *       {@code none}, {@code discard}, or {@code mixed}. Default: {@code none}.</li>
  * </ul>
  */
 public final class ThaiBreakAnalyzerProvider implements AnalyzerProvider<ThaiBreakAnalyzer> {
@@ -63,7 +65,8 @@ public final class ThaiBreakAnalyzerProvider implements AnalyzerProvider<ThaiBre
             }
         }
 
-        this.analyzer = new ThaiBreakAnalyzer(trie);
+        DecompoundMode mode = DecompoundMode.fromString(settings.get("decompound_mode", "none"));
+        this.analyzer = new ThaiBreakAnalyzer(trie, mode);
     }
 
     @Override

@@ -148,4 +148,48 @@ public class ThaiBreakTokenizerTests extends BaseTokenStreamTestCase {
         tok.close();
         return out.toArray(String[]::new);
     }
+
+    // -----------------------------------------------------------------------
+    // Decompound Mode tests (NONE, DISCARD, MIXED)
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void testDecompoundModeNone() throws IOException {
+        Tokenizer tok = new ThaiBreakTokenizer(trie, DecompoundMode.NONE);
+        tok.setReader(new StringReader("สนามบิน"));
+        assertTokenStreamContents(tok, new String[]{"สนามบิน"}, new int[]{0}, new int[]{7});
+    }
+
+    @Test
+    public void testDecompoundModeDiscard() throws IOException {
+        Tokenizer tok = new ThaiBreakTokenizer(trie, DecompoundMode.DISCARD);
+        tok.setReader(new StringReader("สนามบิน"));
+        assertTokenStreamContents(
+            tok,
+            new String[]{"สนาม", "บิน"},
+            new int[]{0, 4},
+            new int[]{4, 7},
+            new int[]{1, 1}
+        );
+    }
+
+    @Test
+    public void testDecompoundModeMixed() throws IOException {
+        Tokenizer tok = new ThaiBreakTokenizer(trie, DecompoundMode.MIXED);
+        tok.setReader(new StringReader("สนามบิน"));
+        // Token graph:
+        // "สนามบิน" (posInc=1, posLen=2, offset 0..7)
+        // "สนาม"    (posInc=0, posLen=1, offset 0..4)
+        // "บิน"     (posInc=1, posLen=1, offset 4..7)
+        assertTokenStreamContents(
+            tok,
+            new String[]{"สนามบิน", "สนาม", "บิน"},
+            new int[]{0, 0, 4},
+            new int[]{7, 4, 7},
+            null,
+            new int[]{1, 0, 1},
+            new int[]{2, 1, 1},
+            7
+        );
+    }
 }

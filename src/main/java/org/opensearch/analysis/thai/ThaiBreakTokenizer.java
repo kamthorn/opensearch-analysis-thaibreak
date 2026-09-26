@@ -16,17 +16,20 @@ package org.opensearch.analysis.thai;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
+import org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.opensearch.analysis.thai.engine.ThaiViterbiTokenizer;
 import org.opensearch.analysis.thai.engine.ThaiTrie;
 
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Lucene {@link Tokenizer} that segments Thai text using the Viterbi+TCC
- * algorithm from the {@code thai-break} project.
+ * algorithm from the {@code thai-break} project, with support for compound
+ * word decomposition modes ({@link DecompoundMode}).
  *
  * <p>Features:
  * <ul>
@@ -34,6 +37,7 @@ import java.util.List;
  *   <li>Weighted dictionary (frequency-aware Viterbi shortest path).</li>
  *   <li>TCC constraints prevent mid-syllable splits.</li>
  *   <li>Supports user-supplied dictionaries for domain-specific terms.</li>
+ *   <li>Compound word decompounding (NONE, DISCARD, MIXED graph).</li>
  *   <li>Mixed Thai/non-Thai text: non-Thai tokens pass through as-is.</li>
  * </ul>
  *
@@ -41,23 +45,25 @@ import java.util.List;
  * <ul>
  *   <li>{@code <THAI>} — Thai word token</li>
  *   <li>{@code <ALPHANUM>} — Latin/numeric token</li>
- *   <li>{@code <OOV>} — Out-of-vocabulary Thai cluster</li>
  * </ul>
  */
 public final class ThaiBreakTokenizer extends Tokenizer {
 
-    public static final String TOKEN_TYPE_THAI    = "<THAI>";
+    public static final String TOKEN_TYPE_THAI     = "<THAI>";
     public static final String TOKEN_TYPE_ALPHANUM = "<ALPHANUM>";
-    public static final String TOKEN_TYPE_OOV     = "<OOV>";
 
-    private final CharTermAttribute termAtt   = addAttribute(CharTermAttribute.class);
-    private final OffsetAttribute   offsetAtt = addAttribute(OffsetAttribute.class);
-    private final TypeAttribute     typeAtt   = addAttribute(TypeAttribute.class);
+    private final CharTermAttribute          termAtt   = addAttribute(CharTermAttribute.class);
+    private final OffsetAttribute              offsetAtt = addAttribute(OffsetAttribute.class);
+    private final PositionIncrementAttribute   posIncAtt = addAttribute(PositionIncrementAttribute.class);
+    private final PositionLengthAttribute      posLenAtt = addAttribute(PositionLengthAttribute.class);
+    private final TypeAttribute                typeAtt   = addAttribute(TypeAttribute.class);
 
     private final ThaiViterbiTokenizer engine;
+    private final DecompoundMode mode;
 
-    /** Pending tokens yet to be emitted. */
-    private Iterator<String> pending = null;
+    private final List<Token> pendingTokens = new ArrayList<>();
+    private int tokenIndex = 0;
+
     /** Character offset of the next character in the reader's stream. */
     private int streamOffset = 0;
     /** Whether we have accumulated text to segment. */
@@ -66,14 +72,19 @@ public final class ThaiBreakTokenizer extends Tokenizer {
     private static final int BUFFER_SIZE = 4096;
 
     public ThaiBreakTokenizer(ThaiTrie trie) {
+        this(trie, DecompoundMode.NONE);
+    }
+
+    public ThaiBreakTokenizer(ThaiTrie trie, DecompoundMode mode) {
         this.engine = new ThaiViterbiTokenizer(trie);
+        this.mode = mode == null ? DecompoundMode.NONE : mode;
     }
 
     @Override
     public boolean incrementToken() throws IOException {
         clearAttributes();
 
-        while (pending == null || !pending.hasNext()) {
+        while (tokenIndex >= pendingTokens.size()) {
             if (done) return false;
             if (!readNextChunk()) {
                 done = true;
@@ -81,27 +92,20 @@ public final class ThaiBreakTokenizer extends Tokenizer {
             }
         }
 
-        String tok = pending.next();
-        // Skip pure-whitespace tokens
-        if (tok.isBlank()) {
-            streamOffset += tok.length();
-            return incrementToken();
-        }
-
-        int startOffset = streamOffset;
-        streamOffset += tok.length();
-        int endOffset = streamOffset;
-
-        termAtt.append(tok);
-        offsetAtt.setOffset(correctOffset(startOffset), correctOffset(endOffset));
-        typeAtt.setType(tokenType(tok));
+        Token t = pendingTokens.get(tokenIndex++);
+        termAtt.append(t.term);
+        offsetAtt.setOffset(correctOffset(t.startOffset), correctOffset(t.endOffset));
+        posIncAtt.setPositionIncrement(t.posInc);
+        posLenAtt.setPositionLength(t.posLen);
+        typeAtt.setType(t.type);
         return true;
     }
 
     @Override
     public void reset() throws IOException {
         super.reset();
-        pending = null;
+        pendingTokens.clear();
+        tokenIndex = 0;
         streamOffset = 0;
         done = false;
     }
@@ -119,22 +123,84 @@ public final class ThaiBreakTokenizer extends Tokenizer {
         char[] buf = new char[BUFFER_SIZE];
         StringBuilder sb = new StringBuilder();
         int n;
-        // Read until buffer full or EOF
         while (sb.length() < BUFFER_SIZE && (n = input.read(buf, 0, buf.length)) > 0) {
             sb.append(buf, 0, n);
         }
         if (sb.isEmpty()) return false;
 
-        List<String> tokens = engine.tokenize(sb.toString(), true /* keep whitespace for offsets */);
-        pending = tokens.iterator();
-        return true;
+        List<String> rawTokens = engine.tokenize(sb.toString(), true /* keep whitespace for offsets */);
+        pendingTokens.clear();
+        tokenIndex = 0;
+
+        for (String tok : rawTokens) {
+            int tokStart = streamOffset;
+            int tokLen = tok.length();
+            streamOffset += tokLen;
+            int tokEnd = streamOffset;
+
+            // Skip whitespace
+            if (tok.isBlank()) {
+                continue;
+            }
+
+            String type = tokenType(tok);
+            List<String> parts = null;
+            if (mode != DecompoundMode.NONE && TOKEN_TYPE_THAI.equals(type)) {
+                parts = engine.decompose(tok);
+            }
+
+            if (parts == null || parts.size() <= 1) {
+                // Not a compound or mode == NONE
+                pendingTokens.add(new Token(tok, tokStart, tokEnd, 1, 1, type));
+            } else if (mode == DecompoundMode.DISCARD) {
+                // Emit only the decomposed parts sequentially
+                int partStart = tokStart;
+                for (String part : parts) {
+                    int partEnd = partStart + part.length();
+                    pendingTokens.add(new Token(part, partStart, partEnd, 1, 1, type));
+                    partStart = partEnd;
+                }
+            } else if (mode == DecompoundMode.MIXED) {
+                // Emit compound token first (posInc = 1, posLen = parts.size())
+                int numParts = parts.size();
+                pendingTokens.add(new Token(tok, tokStart, tokEnd, 1, numParts, type));
+
+                // Then emit decomposed parts (first part has posInc = 0, subsequent parts have posInc = 1)
+                int partStart = tokStart;
+                for (int i = 0; i < numParts; i++) {
+                    String part = parts.get(i);
+                    int partEnd = partStart + part.length();
+                    int posInc = (i == 0) ? 0 : 1;
+                    pendingTokens.add(new Token(part, partStart, partEnd, posInc, 1, type));
+                    partStart = partEnd;
+                }
+            }
+        }
+        return !pendingTokens.isEmpty();
     }
 
     private static String tokenType(String tok) {
         if (tok.isEmpty()) return TOKEN_TYPE_ALPHANUM;
         int first = tok.codePointAt(0);
         if (first >= 0x0E00 && first <= 0x0E7F) return TOKEN_TYPE_THAI;
-        if (Character.isLetterOrDigit(first)) return TOKEN_TYPE_ALPHANUM;
         return TOKEN_TYPE_ALPHANUM;
+    }
+
+    private static final class Token {
+        final String term;
+        final int startOffset;
+        final int endOffset;
+        final int posInc;
+        final int posLen;
+        final String type;
+
+        Token(String term, int startOffset, int endOffset, int posInc, int posLen, String type) {
+            this.term = term;
+            this.startOffset = startOffset;
+            this.endOffset = endOffset;
+            this.posInc = posInc;
+            this.posLen = posLen;
+            this.type = type;
+        }
     }
 }
