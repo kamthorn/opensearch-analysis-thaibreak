@@ -1,0 +1,107 @@
+import org.opensearch.gradle.test.RestIntegTestTask
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'opensearch.opensearchplugin'
+apply plugin: 'opensearch.yaml-rest-test'
+apply plugin: 'opensearch.pluginzip'
+
+def pluginName = 'analysis-thaibreak'
+def pluginDescription = 'Thai word segmentation analysis plugin using Viterbi+TCC algorithm'
+def packagePath = 'org.opensearch.analysis.thai'
+def pluginClassName = 'ThaiBreakPlugin'
+group = "org.opensearch.analysis"
+
+java {
+    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_21
+}
+
+publishing {
+    publications {
+        pluginZip(MavenPublication) { publication ->
+            pom {
+                name = pluginName
+                description = pluginDescription
+                licenses {
+                    license {
+                        name = "The Apache License, Version 2.0"
+                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                    }
+                }
+                developers {
+                    developer {
+                        name = "kamthorn"
+                        url = "https://github.com/kamthorn/opensearch-analysis-thaibreak"
+                    }
+                }
+            }
+        }
+    }
+}
+
+opensearchplugin {
+    name pluginName
+    description pluginDescription
+    classname "${packagePath}.${pluginClassName}"
+    licenseFile rootProject.file('LICENSE.txt')
+    noticeFile rootProject.file('NOTICE.txt')
+}
+
+// This requires an additional Jar not published as part of build-tools
+loggerUsageCheck.enabled = false
+
+// No need to validate pom, as we do not upload to maven/sonatype
+validateNebulaPom.enabled = false
+
+buildscript {
+    ext {
+        opensearch_version = System.getProperty("opensearch.version", "3.8.0")
+    }
+
+    repositories {
+        mavenLocal()
+        maven { url "https://ci.opensearch.org/maven2/" }
+        maven { url "https://ci.opensearch.org/m2/" }
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+
+    dependencies {
+        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
+    }
+}
+
+repositories {
+    mavenLocal()
+    maven { url "https://ci.opensearch.org/maven2/" }
+    maven { url "https://ci.opensearch.org/m2/" }
+    mavenCentral()
+    maven { url "https://plugins.gradle.org/m2/" }
+}
+
+test {
+    include '**/*Tests.class'
+}
+
+task integTest(type: RestIntegTestTask) {
+    description = "Run tests against a cluster"
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+}
+tasks.named("check").configure { dependsOn(integTest) }
+
+integTest {
+    if (System.getProperty("test.debug") != null) {
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+    }
+}
+
+testClusters.integTest {
+    testDistribution = "INTEG_TEST"
+    plugin(project.tasks.bundlePlugin.archiveFile)
+}
+
+run {
+    useCluster testClusters.integTest
+}

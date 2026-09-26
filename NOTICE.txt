@@ -1,0 +1,10 @@
+OpenSearch Analysis ThaiBreak Plugin
+Copyright 2024 kamthorn
+
+This project includes code derived from:
+- thai-break (https://github.com/kamthorn/thai-break)
+  Copyright 2024 kamthorn, Apache-2.0 License
+  Thai word segmentation engine (Viterbi DAG + TCC algorithm)
+
+- The bundled word list (words.txt) is derived from the thai-break project,
+  Apache-2.0 License.
