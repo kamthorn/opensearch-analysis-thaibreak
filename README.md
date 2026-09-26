@@ -163,6 +163,41 @@ PUT /thai-phonetic-index
 }
 ```
 
+### Thai Tone & Diacritic Stripping Filter (`thaibreak_tone`)
+
+Similar to Lucene's `ASCIIFoldingFilter`, strips tone marks (ไม้เอก-ไม้จัตวา: `\u0E48` - `\u0E4B`), ไม้ไต่คู้ (`\u0E47`), and ทัณฑฆาต/การันต์ (`\u0E4C`) to enable fuzzy/loose search for words with tone ambiguities or common colloquial spellings:
+- `นะค่ะ` &rarr; `นะคะ`
+- `มงค็ล` &rarr; `มงคล`
+- `การ์ด` &rarr; `การด`
+
+#### Parameters:
+- `keep_original`: `true` (default; emits tone-stripped token as synonym at `posInc=0`) or `false` (replaces in-place).
+- `strip_tones`: `true` (default; strips tone marks and mai tai khu).
+- `strip_thanthakhat`: `true` (default; strips thanthakhat/garun).
+
+```json
+PUT /thai-loose-index
+{
+  "settings": {
+    "analysis": {
+      "filter": {
+        "thai_loose_filter": {
+          "type": "thaibreak_tone",
+          "keep_original": true
+        }
+      },
+      "analyzer": {
+        "thai_loose": {
+          "type": "custom",
+          "tokenizer": "thaibreak",
+          "filter": ["lowercase", "thai_loose_filter"]
+        }
+      }
+    }
+  }
+}
+```
+
 ## Building from source
 
 ```bash
