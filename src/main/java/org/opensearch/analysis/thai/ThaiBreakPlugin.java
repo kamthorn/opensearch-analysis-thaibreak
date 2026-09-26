@@ -90,7 +90,9 @@ public final class ThaiBreakPlugin extends Plugin implements AnalysisPlugin {
     public Map<String, AnalysisModule.AnalysisProvider<TokenFilterFactory>> getTokenFilters() {
         return Map.of(
             "thaibreak_keyboard", ThaiKeyboardTokenFilterFactory::new,
-            "thai_keyboard", ThaiKeyboardTokenFilterFactory::new
+            "thai_keyboard", ThaiKeyboardTokenFilterFactory::new,
+            "thaibreak_soundex", ThaiSoundexTokenFilterFactory::new,
+            "thai_soundex", ThaiSoundexTokenFilterFactory::new
         );
     }
 }
