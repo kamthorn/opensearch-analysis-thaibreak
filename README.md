@@ -118,6 +118,39 @@ PUT /thai-keyboard-index
 }
 ```
 
+### Thai Phonetic / Soundex Filter (`thaibreak_soundex`)
+
+Implements the standard **Udom83** Thai soundex algorithm (Master's thesis, Chulalongkorn University, 1983). Generates a 7-character phonetic signature mapping homophones (คำพ้องเสียง) and common spelling variations to identical codes:
+- `กาล` / `การ` / `การณ์` &rarr; `ก900000`
+- `ลัก` / `รัก` / `รักษ์` &rarr; `ร100000`
+- `พันธ์` / `พันธุ์` &rarr; `พ300000`
+
+#### Parameters:
+- `keep_original`: `true` (default; emits soundex signature as synonym at `posInc=0`) or `false` (replaces original token).
+
+```json
+PUT /thai-phonetic-index
+{
+  "settings": {
+    "analysis": {
+      "filter": {
+        "thai_soundex_filter": {
+          "type": "thaibreak_soundex",
+          "keep_original": true
+        }
+      },
+      "analyzer": {
+        "thai_phonetic": {
+          "type": "custom",
+          "tokenizer": "thaibreak",
+          "filter": ["lowercase", "thai_soundex_filter"]
+        }
+      }
+    }
+  }
+}
+```
+
 ## Building from source
 
 ```bash
