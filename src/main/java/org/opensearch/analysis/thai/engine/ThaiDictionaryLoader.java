@@ -17,6 +17,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -34,18 +35,33 @@ public final class ThaiDictionaryLoader {
 
     private ThaiDictionaryLoader() {}
 
-    /**
-     * Loads the bundled default dictionary into a new {@link ThaiTrie}.
-     *
-     * @throws IOException if the embedded resource cannot be read
-     */
-    public static ThaiTrie loadDefault() throws IOException {
-        try (InputStream is = ThaiDictionaryLoader.class.getResourceAsStream(DEFAULT_DICT_RESOURCE)) {
-            if (is == null) {
-                throw new IOException("Bundled Thai dictionary not found: " + DEFAULT_DICT_RESOURCE);
+    /** Lazily parses the bundled dictionary once per JVM/classloader (static holder idiom). */
+    private static final class Holder {
+        static final ThaiTrie DEFAULT = build();
+
+        private static ThaiTrie build() {
+            try (InputStream is = ThaiDictionaryLoader.class.getResourceAsStream(DEFAULT_DICT_RESOURCE)) {
+                if (is == null) {
+                    throw new IOException("Bundled Thai dictionary not found: " + DEFAULT_DICT_RESOURCE);
+                }
+                return loadFromStream(is, new ThaiTrie());
+            } catch (IOException e) {
+                throw new UncheckedIOException("Failed to load bundled Thai dictionary", e);
             }
-            return loadFromStream(is, new ThaiTrie());
         }
+    }
+
+    /**
+     * Returns the bundled default dictionary as a shared, process-wide {@link ThaiTrie}.
+     *
+     * <p>Parsed once and cached: repeated calls return the <em>same instance</em>.
+     * Callers must treat it as read-only — call {@link ThaiTrie#copy()} first if
+     * words need to be added (e.g. for a per-index {@code user_dictionary}),
+     * otherwise those additions would leak into every other caller sharing this
+     * instance.
+     */
+    public static ThaiTrie loadDefault() {
+        return Holder.DEFAULT;
     }
 
     /**

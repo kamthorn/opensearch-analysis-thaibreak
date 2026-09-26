@@ -101,6 +101,19 @@ COVID-19
 
 Lines starting with `#` are ignored. Weight defaults to `1.0`.
 
+## Known limitations
+
+- **Whole-field buffering**: segmentation is a global Viterbi shortest-path
+  computation, not a streaming algorithm, so each field's text is fully
+  buffered in memory before it is tokenized. This is normal for typical
+  text fields but worth knowing if you plan to analyze extremely large
+  documents.
+- **User dictionary format**: `user_dictionary` is a flat `word[\tweight]`
+  list — it does not support multi-word phrases or synonym mapping.
+- **Decompounding is dictionary-bound**: `discard`/`mixed` modes only split
+  a compound into parts that are themselves already in the dictionary; they
+  won't decompose a genuinely unknown compound.
+
 ## License
 
 Apache-2.0 — see [LICENSE.txt](LICENSE.txt).

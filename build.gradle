@@ -54,7 +54,10 @@ loggerUsageCheck.enabled = false
 // No need to validate pom, as we do not upload to maven/sonatype
 validateNebulaPom.enabled = false
 
-// Disable testingConventions as integTest and yamlRestTest have no test suites yet
+// Disable testingConventions: there are no yamlRestTest specs and no dedicated
+// integTest source set yet (the integTest task below just replays the unit
+// tests against a live cluster). Tracked as a follow-up; re-enable once real
+// REST/integ coverage exists.
 testingConventions.enabled = false
 
 buildscript {

@@ -48,15 +48,13 @@ public final class ThaiBreakAnalyzerProvider implements AnalyzerProvider<ThaiBre
                                      Settings settings) {
         this.name = name;
 
-        ThaiTrie trie;
-        try {
-            trie = ThaiDictionaryLoader.loadDefault();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to load bundled Thai dictionary", e);
-        }
+        ThaiTrie trie = ThaiDictionaryLoader.loadDefault();
 
+        // Optional user dictionary: copy-on-write so this index's additions
+        // never leak into the shared default trie used by other indices.
         String userDictPath = settings.get("user_dictionary");
         if (userDictPath != null && !userDictPath.isBlank()) {
+            trie = trie.copy();
             Path dictPath = env.configDir().resolve(userDictPath);
             try (InputStream is = Files.newInputStream(dictPath)) {
                 ThaiDictionaryLoader.loadFromStream(is, trie);
