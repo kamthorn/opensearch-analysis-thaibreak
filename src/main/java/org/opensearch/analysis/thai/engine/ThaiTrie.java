@@ -83,6 +83,19 @@ public final class ThaiTrie {
         }
     }
 
+    /**
+     * Returns an independent copy of this trie. Mutating the copy (e.g. via
+     * {@link #add}) never affects the original — use this before merging a
+     * user dictionary into a trie that may be shared by other callers.
+     */
+    public ThaiTrie copy() {
+        ThaiTrie clone = new ThaiTrie();
+        clone.prefixMap.putAll(this.prefixMap);
+        clone.maxWeight = this.maxWeight;
+        clone.totalWeight = this.totalWeight;
+        return clone;
+    }
+
     /** Total weight (sum of all full-word weights); used as the Viterbi normalizer. */
     public double totalWeight() {
         return totalWeight;

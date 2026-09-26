@@ -81,16 +81,13 @@ public final class ThaiBreakTokenizerFactory implements TokenizerFactory {
         this.name = name;
         this.mode = DecompoundMode.fromString(settings.get("decompound_mode", "none"));
 
-        ThaiTrie t;
-        try {
-            t = ThaiDictionaryLoader.loadDefault();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to load bundled Thai dictionary", e);
-        }
+        ThaiTrie t = ThaiDictionaryLoader.loadDefault();
 
-        // Optional user dictionary
+        // Optional user dictionary: copy-on-write so this index's additions
+        // never leak into the shared default trie used by other indices.
         String userDictPath = settings.get("user_dictionary");
         if (userDictPath != null && !userDictPath.isBlank()) {
+            t = t.copy();
             Path dictPath = env.configDir().resolve(userDictPath);
             try (InputStream is = Files.newInputStream(dictPath)) {
                 ThaiDictionaryLoader.loadFromStream(is, t);
