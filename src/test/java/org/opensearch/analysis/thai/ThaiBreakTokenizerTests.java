@@ -215,4 +215,42 @@ public class ThaiBreakTokenizerTests extends BaseTokenStreamTestCase {
             7
         );
     }
+
+    public void testMultiChunkSafeStreaming() throws IOException {
+        // Build a 50,000-character realistic Thai text spanning >6 chunks of 8KB
+        String paragraph = "การพัฒนาเทคโนโลยีการสืบค้นข้อมูลภาษาไทยสำหรับองค์กรขนาดใหญ่จำเป็นต้องมีความแม่นยำสูง "
+            + "และการจัดการหน่วยความจำที่มีประสิทธิภาพเพื่อป้องกันปัญหาหน่วยความจำไม่เพียงพอเมื่อประมวลผลเอกสารขนาดใหญ่ ";
+        StringBuilder sb = new StringBuilder();
+        int markerIndex = 1;
+        while (sb.length() < 50_000) {
+            sb.append(paragraph);
+            sb.append("หมุดหมายที่").append(markerIndex++).append(" ");
+        }
+
+        Tokenizer tok = newTokenizer();
+        tok.setReader(new StringReader(sb.toString()));
+        tok.reset();
+
+        org.apache.lucene.analysis.tokenattributes.CharTermAttribute termAtt =
+            tok.getAttribute(org.apache.lucene.analysis.tokenattributes.CharTermAttribute.class);
+        org.apache.lucene.analysis.tokenattributes.OffsetAttribute offsetAtt =
+            tok.getAttribute(org.apache.lucene.analysis.tokenattributes.OffsetAttribute.class);
+
+        int prevStart = 0;
+        int tokenCount = 0;
+        while (tok.incrementToken()) {
+            tokenCount++;
+            int start = offsetAtt.startOffset();
+            int end = offsetAtt.endOffset();
+            assertTrue("Token start offset must not decrease: " + start + " < " + prevStart, start >= prevStart);
+            assertTrue("Token end must be >= start: " + start + " > " + end, end >= start);
+            assertTrue("Token length must match offset diff", termAtt.length() <= (end - start));
+            prevStart = start;
+        }
+        tok.end();
+        assertEquals("Final stream offset must equal total input length", sb.length(), offsetAtt.endOffset());
+        tok.close();
+
+        assertTrue("Expected thousands of tokens for 50KB text, got: " + tokenCount, tokenCount > 3000);
+    }
 }
