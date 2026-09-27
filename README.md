@@ -1,6 +1,7 @@
 # opensearch-analysis-thaibreak
 
 [![Release](https://img.shields.io/github/v/release/kamthorn/opensearch-analysis-thaibreak?color=brightgreen)](https://github.com/kamthorn/opensearch-analysis-thaibreak/releases)
+[![Docker](https://img.shields.io/badge/docker-ghcr.io-blue?logo=docker)](https://github.com/kamthorn/opensearch-analysis-thaibreak/pkgs/container/opensearch-thaibreak)
 
 OpenSearch Analysis Plugin for the Thai language — powered by the **Viterbi + TCC** segmentation engine from [thai-break](https://github.com/kamthorn/thai-break).
 
@@ -23,9 +24,31 @@ OpenSearch Analysis Plugin for the Thai language — powered by the **Viterbi + 
 | Compound words | Varies by JRE | Frequency-weighted |
 | Dictionary size | Varies by JRE | 25,907 words |
 
-## Installation & One-Click Docker
+## Installation & Docker
 
-### Run with Docker Compose (Instant Evaluation)
+### 🐳 Run Pre-built Docker Image (Instant Start)
+
+Pre-built Docker images are published to GitHub Container Registry (GHCR):
+
+```bash
+# Run OpenSearch 2.18.0 with thaibreak pre-installed
+docker run -d -p 9200:9200 -p 9600:9600 \
+  -e "discovery.type=single-node" \
+  -e "plugins.security.disabled=true" \
+  --name opensearch-thaibreak \
+  ghcr.io/kamthorn/opensearch-thaibreak:2.18.0
+
+# Verify plugin installation
+curl http://localhost:9200/_cat/plugins?v
+```
+
+Available Docker tags:
+- `ghcr.io/kamthorn/opensearch-thaibreak:latest`
+- `ghcr.io/kamthorn/opensearch-thaibreak:2.18.0`
+- `ghcr.io/kamthorn/opensearch-thaibreak:2.19.0`
+- `ghcr.io/kamthorn/opensearch-thaibreak:3.8.0`
+
+### Or Run with Docker Compose
 
 ```bash
 docker compose up -d

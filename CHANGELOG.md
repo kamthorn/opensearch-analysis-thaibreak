@@ -34,6 +34,7 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 - GitHub Actions automated Release workflow (`release.yml`): triggers on `v*` tags, runs all tests, packages all ZIPs, and publishes the GitHub Release automatically.
 - GitHub Actions multi-version Matrix Build (`matrix-build.yml`).
 - One-Click Docker Compose evaluation environment (`docker-compose.yml` + `docker/Dockerfile` + `docker/test-search.sh`).
+- Automated Docker image publishing to GitHub Container Registry (GHCR): `ghcr.io/kamthorn/opensearch-thaibreak` for OpenSearch 2.18.0, 2.19.0, and 3.8.0.
 - Technical Architecture Whitepaper (`docs/THAI_SEARCH_WHITEPAPER.md`).
 
 ### 🔒 Quality & Safety
