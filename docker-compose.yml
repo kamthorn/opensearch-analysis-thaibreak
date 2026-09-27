@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   opensearch:
+    image: ghcr.io/kamthorn/opensearch-thaibreak:2.18.0
     build:
       context: .
       dockerfile: docker/Dockerfile
