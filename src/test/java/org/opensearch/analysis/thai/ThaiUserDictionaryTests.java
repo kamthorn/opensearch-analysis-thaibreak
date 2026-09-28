@@ -80,4 +80,23 @@ public class ThaiUserDictionaryTests extends BaseTokenStreamTestCase {
         tok2.setReader(new StringReader("พบคำใหม่ล่าสุด"));
         assertTokenStreamContents(tok2, new String[]{"พบ", "คำใหม่ล่าสุด"});
     }
+
+    public void testLongUserDictionaryWordStaysWhole() throws IOException {
+        // Reported bug: words longer than the old 25-char scan window
+        // (e.g. a 44-char office name) never matched. The scan window now
+        // follows ThaiTrie.maxWordLength().
+        String longName = "สำนักงานพัฒนาวิทยาศาสตร์และเทคโนโลยีแห่งชาติ";
+        Settings settings = Settings.builder()
+            .putList("user_dictionary_rules", longName)
+            .build();
+
+        ThaiTrie trie = ThaiBreakTokenizerFactory.loadTrie(null, settings);
+        assertTrue(trie.contains(longName));
+        assertTrue("maxWordLength must cover the long entry",
+            trie.maxWordLength() >= longName.codePointCount(0, longName.length()));
+
+        Tokenizer tok = new ThaiBreakTokenizer(trie);
+        tok.setReader(new StringReader("ไปที่" + longName + "พรุ่งนี้"));
+        assertTokenStreamContents(tok, new String[]{"ไป", "ที่", longName, "พรุ่งนี้"});
+    }
 }

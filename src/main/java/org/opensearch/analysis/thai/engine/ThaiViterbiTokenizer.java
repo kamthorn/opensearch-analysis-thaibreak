@@ -237,8 +237,9 @@ public final class ThaiViterbiTokenizer {
             String subText = text.substring(runeStart[i]);
 
             if (isThaiRune(rune0)) {
-                // 1. Dictionary words
-                for (ThaiTrie.PrefixMatch m : trie.prefixes(runes, i, 25)) {
+                // 1. Dictionary words (scan window follows the longest entry,
+                //    so long user-dictionary words stay matchable)
+                for (ThaiTrie.PrefixMatch m : trie.prefixes(runes, i, trie.maxWordLength())) {
                     int j = m.end;
                     if (j <= n && validPos[j]) {
                         double cost = Math.log(normalizer / m.weight);
@@ -373,7 +374,7 @@ public final class ThaiViterbiTokenizer {
         for (int i = 0; i < n; i++) {
             if (!validPos[i] || Double.isInfinite(dp[i])) continue;
 
-            for (ThaiTrie.PrefixMatch m : trie.prefixes(runes, i, 25)) {
+            for (ThaiTrie.PrefixMatch m : trie.prefixes(runes, i, trie.maxWordLength())) {
                 int j = m.end;
                 // Disallow the single edge covering the entire word from 0 to n!
                 if (i == 0 && j == n) {
