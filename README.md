@@ -346,13 +346,12 @@ Empirical results measured on Linux amd64 (JDK 25, 20,000 iterations per workloa
 - **`ThaiKeyboardConverter` (Kedmanee &harr; QWERTY)**: **18,380,000 ops/sec** (~54 ns/op)
 - **`ThaiSoundex` (Udom83 Phonetic)**: **260,000 ops/sec** (~3.8 µs/op)
 
+## Memory Safety & Streaming
+
+- **Streaming Safe-Chunking ($O(1)$ Memory)**: Rather than buffering arbitrary amounts of text into memory, the tokenizer streams large documents in sliding 8,192-character windows with `findSafeCut()` lookback. It safely breaks on whitespace, newlines, and punctuation without splitting Thai Character Clusters (TCC), preventing OOM on massive text fields or OCR dumps.
+
 ## Known limitations
 
-- **Whole-field buffering**: segmentation is a global Viterbi shortest-path
-  computation, not a streaming algorithm, so each field's text is fully
-  buffered in memory before it is tokenized. This is normal for typical
-  text fields but worth knowing if you plan to analyze extremely large
-  documents.
 - **User dictionary format**: `user_dictionary` is a flat `word[\tweight]`
   list — it does not support multi-word phrases or synonym mapping.
 - **Decompounding is dictionary-bound**: `discard`/`mixed` modes only split
@@ -361,14 +360,14 @@ Empirical results measured on Linux amd64 (JDK 25, 20,000 iterations per workloa
 
 ## Apache Lucene Upstream
 
-ฟีเจอร์หลักของ plugin นี้กำลังอยู่ระหว่างพิจารณาเพื่อรวมเข้า **Apache Lucene Core**:
+ฟีเจอร์หลักของ plugin นี้ได้รับการเสนอเข้า **Apache Lucene Core**:
 
 | PR | หัวข้อ | สถานะ |
-|---|---|---|
-| [#16717](https://github.com/apache/lucene/pull/16717) | ThaiCharFilter + ThaiNormalizer | Under Review |
-| [#16718](https://github.com/apache/lucene/pull/16718) | Modern Thai Stopwords | Under Review |
-| [#16720](https://github.com/apache/lucene/pull/16720) | ThaiRepeatFilter + OffsetAttribute fix | Under Review |
-| [#16722](https://github.com/apache/lucene/pull/16722) | User Dictionary Support | Under Review |
+|---|---|:---:|
+| [#16717](https://github.com/apache/lucene/pull/16717) | ThaiCharFilter + ThaiNormalizer | 🟣 **Merged** |
+| [#16718](https://github.com/apache/lucene/pull/16718) | Modern Thai Stopwords | 🟣 **Merged** |
+| [#16720](https://github.com/apache/lucene/pull/16720) | ThaiRepeatFilter + OffsetAttribute fix | 🟣 **Merged** |
+| [#16722](https://github.com/apache/lucene/pull/16722) | User Dictionary Support | 🟢 **Open** (Review passed) |
 
 ## License
 
