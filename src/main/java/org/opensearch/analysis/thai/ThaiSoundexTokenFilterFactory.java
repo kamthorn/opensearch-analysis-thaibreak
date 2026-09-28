@@ -25,11 +25,14 @@ import org.opensearch.index.analysis.AbstractTokenFilterFactory;
  * <p>Supported settings:
  * <ul>
  *   <li>{@code keep_original}: {@code true} (default) or {@code false}</li>
+ *   <li>{@code min_term_length}: minimum token length in code points for code
+ *       emission, {@code 3} (default). Shorter tokens keep their surface form.</li>
  * </ul>
  */
 public final class ThaiSoundexTokenFilterFactory extends AbstractTokenFilterFactory {
 
     private final boolean keepOriginal;
+    private final int minTermLength;
 
     /**
      * Constructs a new factory from index settings and environment.
@@ -47,10 +50,11 @@ public final class ThaiSoundexTokenFilterFactory extends AbstractTokenFilterFact
     ) {
         super(indexSettings, name, settings);
         this.keepOriginal = settings.getAsBoolean("keep_original", true);
+        this.minTermLength = settings.getAsInt("min_term_length", ThaiSoundexTokenFilter.DEFAULT_MIN_TERM_LENGTH);
     }
 
     @Override
     public TokenStream create(TokenStream tokenStream) {
-        return new ThaiSoundexTokenFilter(tokenStream, keepOriginal);
+        return new ThaiSoundexTokenFilter(tokenStream, keepOriginal, minTermLength);
     }
 }

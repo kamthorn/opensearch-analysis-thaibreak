@@ -36,6 +36,10 @@ import java.io.IOException;
  *
  * <p>When {@code keep_original} is {@code true} (default), emits the stripped token
  * as a synonym at position increment 0.
+ *
+ * <p>Decompound fragments (tokens strictly inside a compound token's span,
+ * identified via {@code posLen > 1}) keep their surface form only — no stripped
+ * synonym is emitted for them, mirroring {@link ThaiSoundexTokenFilter}.
  */
 public final class ThaiToneFilter extends TokenFilter {
 
@@ -56,6 +60,9 @@ public final class ThaiToneFilter extends TokenFilter {
     private int pendingStartOffset = 0;
     private int pendingEndOffset = 0;
     private int pendingPosLen = 1;
+
+    /** End offset of the enclosing compound span, or -1 when outside one. */
+    private int graphEndOffset = -1;
 
     /**
      * Creates a new tone filter with default settings (keep_original=true, strip all).
@@ -96,6 +103,18 @@ public final class ThaiToneFilter extends TokenFilter {
 
         if (!input.incrementToken()) {
             return false;
+        }
+
+        int posLen = posLenAtt.getPositionLength();
+        int start = offsetAtt.startOffset();
+        int end = offsetAtt.endOffset();
+        if (posLen > 1) {
+            graphEndOffset = end;
+        } else {
+            if (start >= graphEndOffset) graphEndOffset = -1;
+            if (start < graphEndOffset) {
+                return true;
+            }
         }
 
         String current = termAtt.toString();
@@ -149,5 +168,6 @@ public final class ThaiToneFilter extends TokenFilter {
     public void reset() throws IOException {
         super.reset();
         pendingStripped = null;
+        graphEndOffset = -1;
     }
 }

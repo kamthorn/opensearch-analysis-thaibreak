@@ -17,9 +17,13 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.opensearch.analysis.thai.engine.ThaiDictionaryLoader;
+import org.opensearch.analysis.thai.engine.ThaiTrie;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Unit tests for {@link ThaiToneFilter}.
@@ -91,5 +95,31 @@ public class ThaiToneFilterTests extends BaseTokenStreamTestCase {
             new int[]{5},
             new int[]{1}
         );
+    }
+
+    public void testNoStrippedSynonymForDecompoundFragments() throws IOException {
+        // MIXED mode emits น้ำปลา as a compound graph (น้ำปลา + น้ำ + ปลา).
+        // The whole token keeps its stripped synonym (นำปลา); the fragment
+        // น้ำ must not emit stripped นำ.
+        ThaiTrie trie = ThaiDictionaryLoader.loadDefault();
+        ThaiBreakTokenizer tok = new ThaiBreakTokenizer(trie, DecompoundMode.MIXED);
+        tok.setReader(new StringReader("น้ำปลา"));
+        TokenStream stream = new ThaiToneFilter(tok, true, true, true);
+
+        List<String> terms = new ArrayList<>();
+        stream.reset();
+        org.apache.lucene.analysis.tokenattributes.CharTermAttribute termAtt =
+            stream.addAttribute(org.apache.lucene.analysis.tokenattributes.CharTermAttribute.class);
+        while (stream.incrementToken()) {
+            terms.add(termAtt.toString());
+        }
+        stream.end();
+        stream.close();
+
+        assertTrue(terms.contains("น้ำปลา"));
+        assertTrue(terms.contains("นำปลา"));
+        assertTrue(terms.contains("น้ำ"));
+        assertTrue(terms.contains("ปลา"));
+        assertFalse("Fragment น้ำ must not emit stripped นำ", terms.contains("นำ"));
     }
 }

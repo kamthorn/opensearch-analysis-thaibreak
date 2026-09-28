@@ -5,6 +5,22 @@ All notable changes to `opensearch-analysis-thaibreak` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).  
 Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18.0).
 
+## [Unreleased]
+
+### 🐛 Bug Fixes
+
+- **No more 25-char scan cap**: prefix matching follows `ThaiTrie.maxWordLength()`,
+  so long user-dictionary entries (e.g. a 44-char office name) and 53-char
+  bundled names match instead of being silently ignored.
+- **Decompound guards**: `atomic-words.txt` keeps single morphemes whole
+  (ตาราง, สำหรับ), and decompositions emitting closed-class parts
+  (กรมการ into กรม|การ) are rejected.
+- **Soundex/tone precision**: phonetic and stripped synonyms are emitted for
+  whole tokens only — decompound fragments keep their surface form, and
+  soundex skips tokens shorter than `min_term_length` (default 3, configurable).
+  `thaibreak_keyboard` token filter deprecated: it cannot work after
+  tokenization fragments mistyped input; use the char filter instead.
+
 ## [v1.2.0] — 2026-09-28
 
 ### 🚀 Enhancements
