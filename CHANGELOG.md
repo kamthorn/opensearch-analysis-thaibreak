@@ -5,6 +5,26 @@ All notable changes to `opensearch-analysis-thaibreak` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).  
 Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18.0).
 
+## [v1.1.0] — 2026-09-28
+
+### 🚀 Enhancements & Performance
+
+- **Compact DAWG Binary Engine (`words.dawg`)**:
+  - Implemented an ultra-compact Directed Acyclic Word Graph (DAWG / Minimal DFA, `TBD1` specification) reader `CompactDawg`.
+  - Replaces flat prefix hash maps with direct binary state transitions, shrinking dictionary storage to **294.6 KB** (compressed to 33.3% of plain TSV).
+  - Instant dictionary load time down to **~1.6 ms** (from ~46 ms, **~28x faster startup**).
+  - Eliminates intermediate `StringBuilder` and substring allocations during prefix lookups, significantly reducing JVM heap footprint and GC pressure.
+
+- **Expanded Dictionary & Category Weights (35,072 Words)**:
+  - Merged bundled corpus with `thai-break-dict-extra` (Chulalongkorn / Lexitron / Royal Society / Modern domain corpora).
+  - Added category-based frequency weights across 10,752 entries (geography `1.25`, organizations `1.20`, medical/legal `1.15`), substantially improving Viterbi path resolution for modern acronyms, technical terms, and compound boundaries.
+  - Seamless integration with `decompound_mode: mixed` and `decompound_mode: discard`.
+
+- **Layered Dictionary Architecture**:
+  - Base Layer: Fast, immutable `CompactDawg` minimal automaton.
+  - Frequency Weights Table: Selective memory-efficient weight overrides for non-default terms.
+  - Runtime Overlay: Copy-on-write `user_dictionary` support per index without data leakage into shared process-wide dictionaries.
+
 ---
 
 ## [v1.0.0] — 2026-09-26
