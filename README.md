@@ -367,7 +367,7 @@ Empirical results measured on Linux amd64 (JDK 25, 20,000 iterations per workloa
 | [#16717](https://github.com/apache/lucene/pull/16717) | ThaiCharFilter + ThaiNormalizer | 🟣 **Merged** |
 | [#16718](https://github.com/apache/lucene/pull/16718) | Modern Thai Stopwords | 🟣 **Merged** |
 | [#16720](https://github.com/apache/lucene/pull/16720) | ThaiRepeatFilter + OffsetAttribute fix | 🟣 **Merged** |
-| [#16722](https://github.com/apache/lucene/pull/16722) | User Dictionary Support | 🟢 **Open** (Review passed) |
+| [#16722](https://github.com/apache/lucene/pull/16722) | User Dictionary Support | 🟣 **Merged** |
 
 ## License
 
