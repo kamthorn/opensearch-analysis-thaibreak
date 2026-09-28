@@ -540,6 +540,14 @@ Empirical results measured on Linux amd64 (JDK 25, 20,000 iterations per workloa
 | [#16722](https://github.com/apache/lucene/pull/16722) | User Dictionary Support | 🟣 **Merged** |
 | [#16727](https://github.com/apache/lucene/pull/16727) | Configurable Buffer & Thai Safe Boundary ([#10153](https://github.com/apache/lucene/issues/10153)) | 🟣 **Merged** |
 
+## OpenSearch Core Upstream
+
+การผลักดันเข้าสู่ **OpenSearch Core** (`modules/analysis-common`):
+
+| Issue / RFC | หัวข้อ | สถานะ |
+|---|---|:---:|
+| [#23151](https://github.com/opensearch-project/OpenSearch/issues/23151) | Modernize Thai Language Analysis in modules/analysis-common | 🟢 **Open (RFC)** |
+
 ## License
 
 Apache-2.0 — see [LICENSE.txt](LICENSE.txt).
