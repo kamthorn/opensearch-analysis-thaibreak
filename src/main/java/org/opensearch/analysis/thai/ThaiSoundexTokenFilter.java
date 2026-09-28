@@ -30,13 +30,28 @@ import java.io.IOException;
  *
  * <p>When {@code keep_original} is {@code true} (default), emits the soundex code
  * as a synonym at position increment 0.
+ *
+ * <p>Two precision guards keep the phonetic index clean:
+ * <ul>
+ *   <li>Tokens shorter than {@code min_term_length} code points (default 3) get
+ *       no code — 1-2 character signatures collide with vast numbers of
+ *       unrelated words.</li>
+ *   <li>Decompound fragments (tokens strictly inside a compound token's span,
+ *       identified via {@code posLen > 1}) get no code — only the whole compound
+ *       carries a phonetic signature. Original fragment terms are still indexed,
+ *       so exact sub-name matching keeps working.</li>
+ * </ul>
  */
 public final class ThaiSoundexTokenFilter extends TokenFilter {
 
     /** Token type assigned to soundex/phonetic tokens. */
     public static final String TOKEN_TYPE_PHONETIC = "<PHONETIC>";
 
+    /** Default minimum token length (code points) for soundex emission. */
+    public static final int DEFAULT_MIN_TERM_LENGTH = 3;
+
     private final boolean keepOriginal;
+    private final int minTermLength;
 
     private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
     private final PositionIncrementAttribute posIncAtt = addAttribute(PositionIncrementAttribute.class);
@@ -48,6 +63,9 @@ public final class ThaiSoundexTokenFilter extends TokenFilter {
     private int pendingStartOffset = 0;
     private int pendingEndOffset = 0;
     private int pendingPosLen = 1;
+
+    /** End offset of the enclosing compound span, or -1 when outside one. */
+    private int graphEndOffset = -1;
 
     /**
      * Creates a soundex token filter with default settings (keep original = true).
@@ -65,8 +83,20 @@ public final class ThaiSoundexTokenFilter extends TokenFilter {
      * @param keepOriginal whether to retain original token alongside phonetic code
      */
     public ThaiSoundexTokenFilter(TokenStream input, boolean keepOriginal) {
+        this(input, keepOriginal, DEFAULT_MIN_TERM_LENGTH);
+    }
+
+    /**
+     * Creates a soundex token filter with full configuration.
+     *
+     * @param input         token stream
+     * @param keepOriginal  whether to retain original token alongside phonetic code
+     * @param minTermLength minimum token length in code points for code emission
+     */
+    public ThaiSoundexTokenFilter(TokenStream input, boolean keepOriginal, int minTermLength) {
         super(input);
         this.keepOriginal = keepOriginal;
+        this.minTermLength = Math.max(1, minTermLength);
     }
 
     @Override
@@ -86,8 +116,23 @@ public final class ThaiSoundexTokenFilter extends TokenFilter {
             return false;
         }
 
+        int posLen = posLenAtt.getPositionLength();
+        int start = offsetAtt.startOffset();
+        int end = offsetAtt.endOffset();
+        if (posLen > 1) {
+            graphEndOffset = end;
+        } else {
+            if (start >= graphEndOffset) graphEndOffset = -1;
+            if (start < graphEndOffset) {
+                return true;
+            }
+        }
+
         String current = termAtt.toString();
         if (!ThaiKeyboardConverter.containsThai(current)) {
+            return true;
+        }
+        if (current.codePointCount(0, current.length()) < minTermLength) {
             return true;
         }
 
@@ -113,5 +158,6 @@ public final class ThaiSoundexTokenFilter extends TokenFilter {
     public void reset() throws IOException {
         super.reset();
         pendingSoundex = null;
+        graphEndOffset = -1;
     }
 }

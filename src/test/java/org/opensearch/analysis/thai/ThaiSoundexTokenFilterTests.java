@@ -67,6 +67,21 @@ public class ThaiSoundexTokenFilterTests extends BaseTokenStreamTestCase {
         );
     }
 
+    public void testShortTokensGetNoCode() throws IOException {
+        // 1-2 character signatures collide with vast numbers of unrelated
+        // words: no code is emitted below min_term_length (default 3).
+        Tokenizer source = new WhitespaceTokenizer();
+        source.setReader(new StringReader("สุ ร"));
+        TokenStream stream = new ThaiSoundexTokenFilter(source, true);
+        assertTokenStreamContents(
+            stream,
+            new String[]{"สุ", "ร"},
+            new int[]{0, 3},
+            new int[]{2, 4},
+            new int[]{1, 1}
+        );
+    }
+
     public void testMultipleWordsHomophoneMatch() throws IOException {
         Tokenizer source = new WhitespaceTokenizer();
         source.setReader(new StringReader("การ กาล"));

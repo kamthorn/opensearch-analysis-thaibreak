@@ -106,7 +106,7 @@ Indexing Thai names often faces challenges with out-of-vocabulary (OOV) terms, l
 `thaibreak_person` encapsulates best practices in a single analyzer:
 - **`decompound_mode: mixed`** (default): preserves the full compound name while emitting sub-tokens as a token graph.
 - **`thai_tone`**: strips tone marks and diacritics as synonyms for tone-free queries.
-- **`thai_soundex`**: adds Udom83 phonetic signatures as synonyms at `posInc=0` for homophone tolerance.
+- **`thai_soundex`**: adds Udom83 phonetic signatures as synonyms at `posInc=0` for homophone tolerance (whole tokens only — decompound fragments and tokens shorter than `min_term_length` keep their surface form).
 - **`lowercase`**: normalizes Latin characters in mixed Thai/English names.
 
 ```json
@@ -232,6 +232,7 @@ Implements the standard **Udom83** Thai soundex algorithm (Master's thesis, Chul
 
 #### Parameters:
 - `keep_original`: `true` (default; emits soundex signature as synonym at `posInc=0`) or `false` (replaces original token).
+- `min_term_length`: minimum token length in code points for code emission, `3` (default). Shorter tokens keep their surface form — 1-2 character signatures collide with vast numbers of unrelated words.
 
 ```json
 PUT /thai-phonetic-index

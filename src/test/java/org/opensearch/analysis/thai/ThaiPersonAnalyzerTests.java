@@ -54,9 +54,32 @@ public class ThaiPersonAnalyzerTests extends LuceneTestCase {
         assertTrue("Expected subword 'สม'", terms.contains("สม"));
         assertTrue("Expected subword 'ชาย'", terms.contains("ชาย"));
 
-        // Soundex synonyms should be emitted for constituent tokens
-        assertTrue("Expected Soundex for 'สม'", terms.contains(ThaiSoundex.udom83("สม")));
-        assertTrue("Expected Soundex for 'ชาย'", terms.contains(ThaiSoundex.udom83("ชาย")));
+        // Phonetic codes are emitted for the WHOLE name only: fragment codes
+        // (สม, ชาย) would match unrelated queries, so they are suppressed.
+        // Original fragment terms stay indexed, preserving exact sub-name search.
+        assertTrue("Expected Soundex for whole 'สมชาย'",
+            terms.contains(ThaiSoundex.udom83("สมชาย")));
+        assertFalse("No Soundex for fragment 'สม'",
+            terms.contains(ThaiSoundex.udom83("สม")));
+        assertFalse("No Soundex for fragment 'ชาย'",
+            terms.contains(ThaiSoundex.udom83("ชาย")));
+    }
+
+    public void testOovNameFragmentsKeepOriginalsWithoutShortCodes() throws IOException {
+        ThaiTrie trie = ThaiDictionaryLoader.loadDefault();
+        ThaiPersonAnalyzer analyzer = new ThaiPersonAnalyzer(trie);
+
+        // สุรไชย is not in the dictionary: segments into สุ|ร|ไชย.
+        // Short-fragment codes (สุ, ร) are noise-dominated and suppressed;
+        // the 3-char ไชย keeps its code (documented precision/recall trade-off).
+        TokenStream ts = analyzer.tokenStream("name", "สุรไชย");
+        List<String> terms = collectTerms(ts);
+
+        assertTrue(terms.contains("สุ"));
+        assertTrue(terms.contains("ร"));
+        assertTrue(terms.contains("ไชย"));
+        assertFalse(terms.contains(ThaiSoundex.udom83("สุ")));
+        assertTrue(terms.contains(ThaiSoundex.udom83("ไชย")));
     }
 
     public void testHomophoneNameMatching() throws IOException {
