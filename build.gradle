@@ -70,6 +70,7 @@ forbiddenPatterns {
     exclude '**/words.txt'
     exclude '**/words.dawg'
     exclude '**/acronyms.txt'
+    exclude '**/romanizations.txt'
 }
 
 buildscript {

@@ -375,6 +375,45 @@ PUT /thai-sorting-index
 }
 ```
 
+### Thai Romanization & Karaoke Filter (`thaibreak_romanization` / `thai_romanization`)
+
+Transliterates Thai words into Latin script using the **Royal Thai General System of Transcription (RTGS)** alongside a bundled dictionary of 77 provinces, major landmarks, institutions, and high-frequency vocabulary.
+
+Enables cross-lingual search and karaoke-style queries (e.g. searching `bangkok`, `krungthep`, `phuket`, `chiangmai`, or `sawatdi` matches Thai documents):
+- `สวัสดี` &rarr; emits `สวัสดี` and `sawatdi` (`posInc=0`)
+- `กรุงเทพ` &rarr; emits `กรุงเทพ`, `krungthep`, and `bangkok` (`posInc=0`)
+- `เชียงใหม่` &rarr; emits `เชียงใหม่` and `chiangmai` (`posInc=0`)
+- `ภูเก็ต` &rarr; emits `ภูเก็ต` and `phuket` (`posInc=0`)
+- Any token not in the dictionary is automatically transcribed using the algorithmic RTGS rule engine (e.g. `กบ` &rarr; `kop`, `เกาะ` &rarr; `ko`, `ไก่` &rarr; `kai`, `สมชาย` &rarr; `samachai`).
+
+#### Parameters:
+- `keep_original`: `true` (default; emits romanized terms as synonyms at `posInc=0`) or `false` (replaces in-place).
+- `romanizations`: inline custom rules (e.g. `["บางกอก=>bangkok", "มทส=>sut"]`).
+- `romanizations_path`: path to custom romanization TSV file relative to OpenSearch `config`.
+
+```json
+PUT /thai-romanization-index
+{
+  "settings": {
+    "analysis": {
+      "filter": {
+        "thai_karaoke_synonyms": {
+          "type": "thaibreak_romanization",
+          "keep_original": true
+        }
+      },
+      "analyzer": {
+        "thai_karaoke_search": {
+          "type": "custom",
+          "tokenizer": "thaibreak",
+          "filter": ["lowercase", "thai_karaoke_synonyms"]
+        }
+      }
+    }
+  }
+}
+```
+
 ## Building from source
 
 ```bash
