@@ -101,6 +101,8 @@ public final class ThaiBreakPlugin extends Plugin implements AnalysisPlugin {
         filters.put("thai_number", ThaiNumberFilterFactory::new);
         filters.put("thaibreak_acronym", ThaiAcronymFilterFactory::new);
         filters.put("thai_acronym", ThaiAcronymFilterFactory::new);
+        filters.put("thaibreak_collation", ThaiCollationFilterFactory::new);
+        filters.put("thai_collation", ThaiCollationFilterFactory::new);
         return Collections.unmodifiableMap(filters);
     }
 }
