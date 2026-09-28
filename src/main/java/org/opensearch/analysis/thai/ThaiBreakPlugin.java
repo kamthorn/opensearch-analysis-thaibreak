@@ -76,7 +76,15 @@ public final class ThaiBreakPlugin extends Plugin implements AnalysisPlugin {
             "thaibreak",
             (AnalysisModule.AnalysisProvider<AnalyzerProvider<?>>)
                 (indexSettings, env, name, settings) ->
-                    new ThaiBreakAnalyzerProvider(indexSettings, env, name, settings)
+                    new ThaiBreakAnalyzerProvider(indexSettings, env, name, settings),
+            "thaibreak_person",
+            (AnalysisModule.AnalysisProvider<AnalyzerProvider<?>>)
+                (indexSettings, env, name, settings) ->
+                    new ThaiPersonAnalyzerProvider(indexSettings, env, name, settings),
+            "thai_person",
+            (AnalysisModule.AnalysisProvider<AnalyzerProvider<?>>)
+                (indexSettings, env, name, settings) ->
+                    new ThaiPersonAnalyzerProvider(indexSettings, env, name, settings)
         );
     }
 
