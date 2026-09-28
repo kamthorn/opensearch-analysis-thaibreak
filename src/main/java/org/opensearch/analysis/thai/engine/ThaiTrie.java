@@ -39,6 +39,15 @@ public final class ThaiTrie {
     private double maxWeight = 1.0;
     private double totalWeight = 0.0;
 
+    /**
+     * Longest dictionary word in code points. Drives the prefix-scan window
+     * so arbitrarily long entries (e.g. a 44-char office name from a user
+     * dictionary, or 53-char bundled names) stay matchable. Zero means the
+     * trie holds no words yet (callers then scan unbounded, which is safe
+     * because scans stop at the first dead trie transition).
+     */
+    private int maxWordLength = 0;
+
     /** Result of a single prefix-match scan. */
     public static final class PrefixMatch {
         /** Rune index where the matched word ends (exclusive). */
@@ -87,6 +96,12 @@ public final class ThaiTrie {
         }
         this.totalWeight = tot;
         this.maxWeight = maxW;
+        int maxLen = 0;
+        for (String w : this.customWeights.keySet()) {
+            int len = w.codePointCount(0, w.length());
+            if (len > maxLen) maxLen = len;
+        }
+        this.maxWordLength = maxLen;
     }
 
     private ThaiTrie(CompactDawg dawg, Map<String, Double> customWeights,
@@ -97,6 +112,19 @@ public final class ThaiTrie {
         this.prefixMap = Collections.emptyMap();
         this.maxWeight = maxWeight;
         this.totalWeight = totalWeight;
+        this.maxWordLength = 0;
+        for (String w : customWeights.keySet()) {
+            int len = w.codePointCount(0, w.length());
+            if (len > maxWordLength) maxWordLength = len;
+        }
+        if (overlay != null) {
+            for (Map.Entry<String, Double> e : overlay.entrySet()) {
+                if (e.getValue() > 0.0) {
+                    int len = e.getKey().codePointCount(0, e.getKey().length());
+                    if (len > maxWordLength) maxWordLength = len;
+                }
+            }
+        }
     }
 
     private ThaiTrie(Map<String, Double> prefixMap, double maxWeight, double totalWeight) {
@@ -106,6 +134,13 @@ public final class ThaiTrie {
         this.prefixMap = prefixMap;
         this.maxWeight = maxWeight;
         this.totalWeight = totalWeight;
+        this.maxWordLength = 0;
+        for (Map.Entry<String, Double> e : prefixMap.entrySet()) {
+            if (e.getValue() > 0.0) {
+                int len = e.getKey().codePointCount(0, e.getKey().length());
+                if (len > maxWordLength) maxWordLength = len;
+            }
+        }
     }
 
     /**
@@ -116,6 +151,8 @@ public final class ThaiTrie {
         if (word == null || word.isEmpty()) return;
 
         if (weight > maxWeight) maxWeight = weight;
+        int wordLen = word.codePointCount(0, word.length());
+        if (wordLen > maxWordLength) maxWordLength = wordLen;
 
         int[] codePoints = word.codePoints().toArray();
         int n = codePoints.length;
@@ -186,6 +223,14 @@ public final class ThaiTrie {
     /** Maximum single-word weight stored. */
     public double maxWeight() {
         return maxWeight;
+    }
+
+    /**
+     * Longest dictionary word in code points (0 when the trie is empty, in
+     * which case prefix scans run unbounded and stop at dead transitions).
+     */
+    public int maxWordLength() {
+        return maxWordLength;
     }
 
     /**
