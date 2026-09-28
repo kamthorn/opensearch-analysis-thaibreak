@@ -66,6 +66,10 @@ tasks.named('forbiddenApisTest').configure {
     exclude '**/benchmark/**'
 }
 
+forbiddenPatterns {
+    exclude '**/words.txt'
+}
+
 buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "3.8.0")

@@ -253,4 +253,28 @@ public class ThaiBreakTokenizerTests extends BaseTokenStreamTestCase {
 
         assertTrue("Expected thousands of tokens for 50KB text, got: " + tokenCount, tokenCount > 3000);
     }
+
+    public void testExtraDictionaryWordsAndDecompound() throws IOException {
+        // Test abbreviation from extra dictionary
+        Tokenizer tokAbbr = newTokenizer();
+        tokAbbr.setReader(new StringReader("ประชุม กมธ. ที่ กทม."));
+        assertTokenStreamContents(
+            tokAbbr,
+            new String[]{"ประชุม", "กมธ.", "ที่", "กทม."}
+        );
+
+        // Test compound word from extra dictionary decomposed in MIXED mode
+        Tokenizer tokMixed = new ThaiBreakTokenizer(trie, DecompoundMode.MIXED);
+        tokMixed.setReader(new StringReader("กรมควบคุมโรค"));
+        assertTokenStreamContents(
+            tokMixed,
+            new String[]{"กรมควบคุมโรค", "กรม", "ควบคุม", "โรค"},
+            new int[]{0, 0, 3, 9},
+            new int[]{12, 3, 9, 12},
+            null,
+            new int[]{1, 0, 1, 1},
+            new int[]{3, 1, 1, 1},
+            12
+        );
+    }
 }
