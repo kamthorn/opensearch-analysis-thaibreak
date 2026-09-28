@@ -292,6 +292,21 @@ PUT /thai-loose-index
 }
 ```
 
+#### Precision vs recall with loose filters
+
+Tone stripping and soundex conflate spellings by design: with `thaibreak_tone`
+enabled, a query for `กลอง` (drum) also matches documents containing `กล้อง`
+(camera), and `ตา` also matches `ต่า`/`ต้า`. Choose per use case:
+
+| Setup | Behavior | When to use |
+|---|---|---|
+| Tone/soundex on **neither** side | Exact matching only (`กลอง` ≠ `กล้อง`) | Precision-first search, SKU/code fields |
+| Tone/soundex on **both** sides | Maximum recall, both directions loose | Forgiving end-user search boxes |
+| Tone/soundex on **index only** | Unmarked queries go loose (`กลอง` finds `กล้อง`), marked queries stay precise (`กล้อง` finds only `กล้อง`) | Recommended asymmetric default |
+
+The same trade-off applies to `thaibreak_soundex` (homophones) — see
+`min_term_length` for taming short-token collisions.
+
 ### Thai Number & Digit Converter Filter (`thaibreak_number`)
 
 Converts Thai digits (`๐-๙`) and spelled-out Thai written number words (e.g. `หนึ่งแสนสองหมื่น`, `ห้าหมื่น`, `สามร้อย`, `สิบสอง`, `ยี่สิบเอ็ด`) into Arabic numbers (`120000`, `50000`, `300`, `12`, `21`):
