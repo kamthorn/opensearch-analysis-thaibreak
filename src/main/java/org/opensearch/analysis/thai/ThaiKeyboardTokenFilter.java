@@ -29,7 +29,19 @@ import java.io.IOException;
  *
  * <p>When {@code keep_original} is {@code true} (default), emits the converted term
  * as a synonym at position increment 0.
+ *
+ * @deprecated This filter only converts <em>whole surviving tokens</em>. In a real
+ *     {@code thaibreak} chain the tokenizer runs first and fragments mistyped
+ *     queries (e.g. {@code l;ylfu} becomes {@code l}, {@code ;}, {@code ylfu}),
+ *     so per-token conversion produces garbage and can never recover the
+ *     intended word. For query-side mis-type recovery use the
+ *     {@code thaibreak_keyboard} <em>char filter</em> instead: it converts the
+ *     raw character stream <em>before</em> tokenization
+ *     ({@code l;ylfu} &rarr; {@code สวัสดี}, then segmented properly).
+ *     This token filter remains only for single-token streams (e.g. keyword
+ *     fields) where mistyped input survives tokenization intact.
  */
+@Deprecated
 public final class ThaiKeyboardTokenFilter extends TokenFilter {
 
     /** Token type assigned to converted keyboard tokens. */
