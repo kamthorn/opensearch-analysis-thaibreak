@@ -20,6 +20,14 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
   soundex skips tokens shorter than `min_term_length` (default 3, configurable).
   `thaibreak_keyboard` token filter deprecated: it cannot work after
   tokenization fragments mistyped input; use the char filter instead.
+- **Hyphen/number composites removed**: `โควิด-19`, `เมอร์เซเดส-เบนซ์`,
+  `บางนา-ตราด`, tax forms and numbered stations no longer ship as atomic
+  units — bare-form queries (e.g. `โควิด`) previously found nothing because
+  documents write the composite form. Splitting keeps query/document symmetric.
+- **Precision recipe documented**: when tone/soundex conflation over-recalls
+  (`กลอง` matching `กล้อง`, `ตา` matching `ต่า`), drop the filters on both
+  sides for exact search, or keep them index-side only for the recommended
+  asymmetric default.
 
 ## [v1.2.0] — 2026-09-28
 
