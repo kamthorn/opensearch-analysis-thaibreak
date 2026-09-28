@@ -97,6 +97,48 @@ PUT /my-index
 }
 ```
 
+### Thai Person & Entity Name Analyzer (`thaibreak_person` / `thai_person`)
+
+A pre-configured production analyzer designed specifically for searching **Thai person names, surnames, and entity titles**.
+
+Indexing Thai names often faces challenges with out-of-vocabulary (OOV) terms, long surnames, compound parts, and homophones (e.g. `ณัฐพล` vs `นัฐพล`, `สุรชัย` vs `สุรไชย`).
+
+`thaibreak_person` encapsulates best practices in a single analyzer:
+- **`decompound_mode: mixed`** (default): preserves the full compound name while emitting sub-tokens as a token graph.
+- **`thai_tone`**: strips tone marks and diacritics as synonyms for tone-free queries.
+- **`thai_soundex`**: adds Udom83 phonetic signatures as synonyms at `posInc=0` for homophone tolerance.
+- **`lowercase`**: normalizes Latin characters in mixed Thai/English names.
+
+```json
+PUT /thai-person-index
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "thai_person_name": {
+          "type": "thaibreak_person"
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "fullname": {
+        "type": "text",
+        "analyzer": "thai_person_name"
+      }
+    }
+  }
+}
+```
+
+#### Analyzer Settings:
+- `decompound_mode`: `mixed` (default), `none`, or `discard`.
+- `tone`: `true` (default; enables tone mark and thanthakhat stripping) or `false`.
+- `soundex`: `true` (default; enables Udom83 phonetic matching) or `false`.
+- `user_dictionary`: optional path to domain-specific names list.
+- `user_dictionary_rules`: optional inline list of custom names.
+
 ### Custom tokenizer with user dictionary
 
 Place your word list at `config/analysis/my-words.txt` (one word per line, optional `\t<weight>`), or specify inline rules directly in index settings with `user_dictionary_rules`:
