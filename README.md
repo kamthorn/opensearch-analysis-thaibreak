@@ -285,6 +285,45 @@ PUT /thai-number-index
 }
 ```
 
+### Thai Acronym & Abbreviation Filter (`thaibreak_acronym` / `thai_acronym`)
+
+Expands Thai acronyms and abbreviations into their full official names as graph synonyms, significantly improving search recall across government, medical, educational, and legal terms:
+- `กทม.` &rarr; emits `กทม.` and `กรุงเทพมหานคร` (`posInc=0`)
+- `รพ.` &rarr; emits `รพ.` and `โรงพยาบาล` (`posInc=0`)
+- `ครม.` &rarr; emits `ครม.` and `คณะรัฐมนตรี` (`posInc=0`)
+- `ผอ.` &rarr; emits `ผอ.` and `ผู้อำนวยการ` (`posInc=0`)
+- Smart dot-normalization: matches both with dots (`กทม.`, `ส.ส.`) and without dots (`กทม`, `สส`).
+
+#### Parameters:
+- `keep_original`: `true` (default; emits full name as synonym alongside acronym) or `false` (replaces original token).
+- `bidirectional`: `false` (default) or `true` (also emits acronym when full word is matched).
+- `normalize_dots`: `true` (default; matches acronyms with or without dots).
+- `acronyms`: list of inline custom rules (e.g. `["มทส.=>มหาวิทยาลัยเทคโนโลยีสุรนารี"]`).
+- `acronyms_path`: path to custom acronyms file relative to OpenSearch `config`.
+
+```json
+PUT /thai-acronym-index
+{
+  "settings": {
+    "analysis": {
+      "filter": {
+        "my_thai_acronym": {
+          "type": "thaibreak_acronym",
+          "keep_original": true
+        }
+      },
+      "analyzer": {
+        "thai_acronym_search": {
+          "type": "custom",
+          "tokenizer": "thaibreak",
+          "filter": ["lowercase", "my_thai_acronym"]
+        }
+      }
+    }
+  }
+}
+```
+
 
 ## Building from source
 
