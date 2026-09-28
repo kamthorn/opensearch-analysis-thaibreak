@@ -14,12 +14,13 @@
 package org.opensearch.analysis.thai;
 
 import org.apache.lucene.analysis.TokenStream;
+import org.opensearch.analysis.thai.ThaiCollationKey.Decomposition;
+import org.opensearch.analysis.thai.ThaiCollationKey.Strength;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.index.analysis.AbstractTokenFilterFactory;
 
-import java.text.Collator;
 import java.util.Locale;
 
 /**
@@ -33,7 +34,7 @@ import java.util.Locale;
  */
 public final class ThaiCollationFilterFactory extends AbstractTokenFilterFactory {
 
-    private final Collator collator;
+    private final ThaiCollationKey collationKey;
 
     /**
      * Constructs a new factory from index settings and environment.
@@ -51,44 +52,39 @@ public final class ThaiCollationFilterFactory extends AbstractTokenFilterFactory
     ) {
         super(indexSettings, name, settings);
 
-        Collator c = Collator.getInstance(Locale.forLanguageTag("th-TH"));
+        Strength strength = parseStrength(settings.get("strength", "tertiary"));
+        Decomposition decomposition = parseDecomposition(settings.get("decomposition", "none"));
+        this.collationKey = new ThaiCollationKey(strength, decomposition);
+    }
 
-        String strengthStr = settings.get("strength", "tertiary");
-        switch (strengthStr.toLowerCase(Locale.ROOT)) {
+    private static Strength parseStrength(String value) {
+        switch (value.toLowerCase(Locale.ROOT)) {
             case "primary":
-                c.setStrength(Collator.PRIMARY);
-                break;
+                return Strength.PRIMARY;
             case "secondary":
-                c.setStrength(Collator.SECONDARY);
-                break;
+                return Strength.SECONDARY;
             case "identical":
-                c.setStrength(Collator.IDENTICAL);
-                break;
+                return Strength.IDENTICAL;
             case "tertiary":
             default:
-                c.setStrength(Collator.TERTIARY);
-                break;
+                return Strength.TERTIARY;
         }
+    }
 
-        String decompStr = settings.get("decomposition", "none");
-        switch (decompStr.toLowerCase(Locale.ROOT)) {
+    private static Decomposition parseDecomposition(String value) {
+        switch (value.toLowerCase(Locale.ROOT)) {
             case "canonical":
-                c.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
-                break;
+                return Decomposition.CANONICAL;
             case "full":
-                c.setDecomposition(Collator.FULL_DECOMPOSITION);
-                break;
+                return Decomposition.FULL;
             case "none":
             default:
-                c.setDecomposition(Collator.NO_DECOMPOSITION);
-                break;
+                return Decomposition.NONE;
         }
-
-        this.collator = c;
     }
 
     @Override
     public TokenStream create(TokenStream tokenStream) {
-        return new ThaiCollationFilter(tokenStream, (Collator) collator.clone());
+        return new ThaiCollationFilter(tokenStream, collationKey);
     }
 }
