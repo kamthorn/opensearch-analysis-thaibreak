@@ -30,6 +30,9 @@ import java.nio.charset.StandardCharsets;
  */
 public final class ThaiDictionaryLoader {
 
+    /** Classpath location of the bundled binary DAWG. */
+    static final String DEFAULT_DAWG_RESOURCE = "/org/opensearch/analysis/thai/words.dawg";
+
     /** Classpath location of the bundled word list. */
     static final String DEFAULT_DICT_RESOURCE = "/org/opensearch/analysis/thai/words.txt";
 
@@ -40,6 +43,18 @@ public final class ThaiDictionaryLoader {
         static final ThaiTrie DEFAULT = build();
 
         private static ThaiTrie build() {
+            // 1. Try loading binary DAWG first (faster, sub-millisecond, minimal memory)
+            try (InputStream is = ThaiDictionaryLoader.class.getResourceAsStream(DEFAULT_DAWG_RESOURCE)) {
+                if (is != null) {
+                    CompactDawg dawg = CompactDawg.loadFromStream(is);
+                    java.util.Map<String, Double> weights = loadCustomWeights(DEFAULT_DICT_RESOURCE);
+                    return new ThaiTrie(dawg, weights);
+                }
+            } catch (Exception ignored) {
+                // Fall back to TSV text parsing if DAWG binary reading fails
+            }
+
+            // 2. Fallback to bundled TSV dictionary
             try (InputStream is = ThaiDictionaryLoader.class.getResourceAsStream(DEFAULT_DICT_RESOURCE)) {
                 if (is == null) {
                     throw new IOException("Bundled Thai dictionary not found: " + DEFAULT_DICT_RESOURCE);
@@ -48,6 +63,31 @@ public final class ThaiDictionaryLoader {
             } catch (IOException e) {
                 throw new UncheckedIOException("Failed to load bundled Thai dictionary", e);
             }
+        }
+
+        private static java.util.Map<String, Double> loadCustomWeights(String resourcePath) {
+            java.util.Map<String, Double> weights = new java.util.HashMap<>();
+            try (InputStream is = ThaiDictionaryLoader.class.getResourceAsStream(resourcePath)) {
+                if (is == null) return weights;
+                BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    line = line.strip();
+                    if (line.isEmpty() || line.startsWith("#")) continue;
+                    int tabIdx = line.indexOf('\t');
+                    if (tabIdx > 0) {
+                        String word = line.substring(0, tabIdx).strip();
+                        String weightStr = line.substring(tabIdx + 1).strip();
+                        try {
+                            double w = Double.parseDouble(weightStr);
+                            if (w > 0) {
+                                weights.put(word, w);
+                            }
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+            } catch (IOException ignored) {}
+            return weights;
         }
     }
 
