@@ -61,13 +61,13 @@ From GitHub Releases (Direct HTTPS URL — no compilation needed):
 
 ```bash
 # OpenSearch 2.18.0
-bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.2.0/analysis-thaibreak-2.18.0.0.zip
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.3.1/analysis-thaibreak-2.18.0.0.zip
 
 # OpenSearch 2.17.1
-bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.2.0/analysis-thaibreak-2.17.1.0.zip
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.3.1/analysis-thaibreak-2.17.1.0.zip
 
 # OpenSearch 2.15.0
-bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.2.0/analysis-thaibreak-2.15.0.0.zip
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.3.1/analysis-thaibreak-2.15.0.0.zip
 ```
 
 Or from local ZIP:
