@@ -9,7 +9,7 @@ Thai is a Brahmic-derived, non-segmented, tonal language written continuously wi
 3. **Common Input Errors:** Zero native tolerance for keyboard language switch errors (*g-hk* $\leftrightarrow$ *เก้า*), homophones (*การ* vs *กาล*), colloquial tone mark discrepancies (*นะคะ* vs *นะค่ะ*), and number representations (*ห้าหมื่น* vs *50000*).
 4. **Resource Volatility:** Unbounded memory growth during global dynamic programming on large OCR/PDF documents.
 
-The `opensearch-analysis-thaibreak` plugin and its upstream Apache Lucene companion PRs (#16717, #16718, #16720, #16722) provide a production-grade, state-of-the-art solution to these challenges.
+The `opensearch-analysis-thaibreak` plugin and its upstream Apache Lucene companion PRs (#16717, #16718, #16720, #16722, #16727 — all merged) provide a production-grade, state-of-the-art solution to these challenges. The plugin additionally ships Royal Institute collation, acronym expansion, and RTGS romanization filters, a person-name analyzer preset, and a 41,778-entry weighted dictionary.
 
 ---
 
@@ -43,6 +43,14 @@ To eliminate Out-Of-Memory (OOM) risks on multi-megabyte texts (such as OCR dump
 
 Because the DP Trellis is bounded to small localized windows, memory consumption is strictly $O(1)$, and CPU data access patterns remain inside the processor's **L1/L2 cache**, yielding higher throughput than whole-document buffering.
 
+### 1.3 Weighted Dictionary & Compact DAWG
+
+The segmentation quality is driven by a **41,778-entry** dictionary merged from the `thai-break` corpus and `thai-break-dict-extra`:
+
+- Every entry carries an explicit frequency weight (uniform baseline `1.00`, category tiers up to `8.00`), feeding directly into $w(i, j)$ of the Viterbi recurrence.
+- Coverage includes general vocabulary, 5,827 subdistricts (ตำบล), slang/bigram corpora, and low-weight (`0.5`) dotless month abbreviations pinned so they cannot hijack ordinary text.
+- The dictionary is compiled into a **Directed Acyclic Word Graph (DAWG / minimal DFA)**: 336 KB, 41,017 states, loaded in sub-millisecond time — replacing flat prefix hash maps while keeping the weighted overlay parsed from the plain-text dictionary.
+
 ---
 
 ## 2. Advanced Linguistic Pipeline
@@ -55,7 +63,10 @@ flowchart TD
     KBF --> SXF["ThaiSoundexTokenFilter (Udom83 Phonetic)"]
     SXF --> TNF["ThaiToneFilter (Tone & Diacritic Stripping)"]
     TNF --> NUM["ThaiNumberFilter (Thai Digits & Number Words)"]
-    NUM --> LuceneIndex["Lucene Inverted Index / PhraseQuery Graph"]
+    NUM --> ACR["ThaiAcronymFilter (Acronym & Abbreviation Expansion)"]
+    ACR --> ROM["ThaiRomanizationFilter (RTGS Transcription)"]
+    ROM --> COL["ThaiCollationFilter (Royal Institute Collation Key)"]
+    COL --> LuceneIndex["Lucene Inverted Index / PhraseQuery Graph"]
 ```
 
 ### 2.1 Feature Capabilities Matrix
@@ -67,6 +78,10 @@ flowchart TD
 | **Phonetic Soundex** | `thaibreak_soundex` | Matches homophones and phonetic variants using Udom83 standard | `กาล` / `การ` / `การณ์` $\rightarrow$ `ก900000` |
 | **Tone Normalizer** | `thaibreak_tone` | Fault-tolerant search for colloquial or accidental tone errors | `นะค่ะ` $\rightarrow$ `นะคะ`, `มงค็ล` $\rightarrow$ `มงคล` |
 | **Number Converter** | `thaibreak_number` | Bridges spoken Thai written numbers and digits | `ห้าหมื่น` $\rightarrow$ `50000`, `๑๒๕๐` $\rightarrow$ `1250` |
+| **Acronym Expansion** | `thai_acronym` | Expands Thai abbreviations and initialisms to their full forms | `กทม` $\rightarrow$ `กทม`, `กรุงเทพมหานคร` |
+| **RTGS Romanization** | `thai_romanization` | Produces Royal Thai General System transcription for karaoke/Latin queries | `กรุงเทพ` $\rightarrow$ `krungthep` |
+| **Royal Institute Collation** | `thai_collation` | ICU-free alphabetical sort keys, deterministic on every JDK and locale | `เกาะ` $\rightarrow$ `010000020000...` (leading vowel reordered after `ก`) |
+| **Person Name Analyzer** | `thaibreak_person` | Single preset for Thai names/surnames: mixed decompounding + tone + Soundex synonyms | `ณัฐพล` / `นัฐพล` match via shared Udom83 signature |
 
 ---
 
@@ -86,7 +101,8 @@ Benchmarks executed on Linux 64-bit AMD64 (AMD Ryzen / EPYC, JDK 25):
 
 ```mermaid
 graph TD
-    Upstream["Apache Lucene 11 Core"]
+    Upstream["Apache Lucene 11 Core (Merged)"]
+    OpenSearchCore["OpenSearch Core modules/analysis-common (RFC #23151)"]
     OpenSearch["OpenSearch Plugin Ecosystem"]
     
     subgraph Upstream Lucene
@@ -94,17 +110,20 @@ graph TD
         PR2["PR #16718: Curated Modern Stopwords"]
         PR3["PR #16720: ThaiRepeatFilter (Mai Yamok)"]
         PR4["PR #16722: User Dictionary Support"]
+        PR5["PR #16727: Configurable Buffer & Thai Safe Boundary"]
     end
 
     subgraph OpenSearch Ecosystem
         Plugin["opensearch-analysis-thaibreak (Full Feature Flagship)"]
-        Matrix["GitHub Actions Matrix: 2.15, 2.17, 2.18, 2.19, 3.8"]
+        Matrix["GitHub Actions Matrix: 2.11.1, 2.15.0, 2.17.1, 2.18.0, 2.19.0, 3.8.0"]
         DockerImg["One-Click Evaluation Docker Image"]
     end
     
-    Upstream --> PR1 & PR2 & PR3 & PR4
+    Upstream --> PR1 & PR2 & PR3 & PR4 & PR5
+    Upstream -.->|RFC| OpenSearchCore
     OpenSearch --> Plugin --> Matrix & DockerImg
 ```
 
-1. **In-Tree Foundation (Apache Lucene):** PRs #16717, #16718, #16720, and #16722 establish universal baseline compliance, ensuring every Lucene-based search engine in the world benefits from correct Unicode character normalization, modern stopwords, highlighter safety, and user dictionary ingestion.
-2. **Out-of-Tree Innovation Flagship (OpenSearch Plugin):** Provides enterprise-grade features (Safe-Chunking, Compound Graph Token Stream, Udom83 Soundex, Keyboard Layout Converter, Tone Stripping, and Spelled-Out Number Mapping) packaged via automated multi-version CI matrix and containerized evaluation.
+1. **In-Tree Foundation (Apache Lucene):** PRs #16717, #16718, #16720, #16722, and #16727 establish universal baseline compliance, ensuring every Lucene-based search engine in the world benefits from correct Unicode character normalization, modern stopwords, highlighter safety, user dictionary ingestion, and bounded safe-chunking.
+2. **Out-of-Tree Innovation Flagship (OpenSearch Plugin):** Provides enterprise-grade features (Safe-Chunking, Compound Graph Token Stream, Udom83 Soundex, Keyboard Layout Converter, Tone Stripping, Spelled-Out Number Mapping, Acronym Expansion, RTGS Romanization, and Royal Institute Collation) packaged via automated multi-version CI matrix and containerized evaluation.
+3. **Core Modernization (OpenSearch):** RFC [#23151](https://github.com/opensearch-project/OpenSearch/issues/23151) tracks bringing the merged Lucene Thai improvements into `modules/analysis-common`, so stock OpenSearch distributions gain modern Thai analysis without a plugin.
