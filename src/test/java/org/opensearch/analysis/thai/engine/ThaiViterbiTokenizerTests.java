@@ -124,6 +124,11 @@ public class ThaiViterbiTokenizerTests extends LuceneTestCase {
         // Non-compound word: สวัสดี -> null
         assertNull("Non-compound word should return null", tok().decompose("สวัสดี"));
 
+        // Atomic single morphemes must never decompose (reported bug):
+        // ตาราง would split into ตา|ราง, สำหรับ into สำ|หรับ
+        assertNull("ตาราง is atomic", tok().decompose("ตาราง"));
+        assertNull("สำหรับ is atomic", tok().decompose("สำหรับ"));
+
         // Short words
         assertNull(tok().decompose("กบ"));
         assertNull(tok().decompose(null));

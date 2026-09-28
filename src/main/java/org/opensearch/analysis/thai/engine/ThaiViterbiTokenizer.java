@@ -53,6 +53,45 @@ public final class ThaiViterbiTokenizer {
         "^(?:(?:[เแโใไ]?[ก-ฮ][ัิีึืุู็่้๊๋]?|[ก-ฮ]{1,4})\\.)++"
     );
 
+    /**
+     * Closed-class function words that never constitute a meaningful
+     * decompound part on their own. A decomposition producing any of these
+     * (e.g. กรมการ into กรม|การ) is rejected: it would flood the index with
+     * ultra-frequent synonym tokens.
+     */
+    private static final java.util.Set<String> FUNCTION_PARTS = java.util.Set.of(
+        "การ", "ความ", "ที่", "ใน", "ของ", "ไป", "มา", "และ", "หรือ",
+        "แต่", "ถ้า", "เพราะ", "เมื่อ", "โดย", "จาก", "ถึง", "เพื่อ",
+        "สำหรับ", "ซึ่ง", "อัน", "ผู้", "จะ", "ไม่", "ได้", "ให้",
+        "กับ", "ว่า", "นี้", "แล้ว", "กัน", "ด้วย", "เลย", "ก็", "จึง"
+    );
+
+    /**
+     * Single-morpheme words that must never be decompounded, loaded from the
+     * {@code atomic-words.txt} resource. These split into dictionary words by
+     * coincidence (e.g. ตาราง into ตา|ราง) and no length rule can tell them
+     * apart from true compounds (e.g. คนไข้ into คน|ไข้), so they are curated.
+     */
+    private static final java.util.Set<String> ATOMIC_WORDS = loadAtomicWords();
+
+    private static java.util.Set<String> loadAtomicWords() {
+        java.util.Set<String> words = new java.util.HashSet<>();
+        try (java.io.InputStream is = ThaiViterbiTokenizer.class.getResourceAsStream(
+                "/org/opensearch/analysis/thai/atomic-words.txt")) {
+            if (is == null) return java.util.Set.of();
+            java.io.BufferedReader br = new java.io.BufferedReader(
+                new java.io.InputStreamReader(is, java.nio.charset.StandardCharsets.UTF_8));
+            String line;
+            while ((line = br.readLine()) != null) {
+                line = line.strip();
+                if (!line.isEmpty() && !line.startsWith("#")) words.add(line);
+            }
+        } catch (java.io.IOException e) {
+            // Missing resource: behave as if the list were empty.
+        }
+        return java.util.Collections.unmodifiableSet(words);
+    }
+
     private final ThaiTrie trie;
 
     /**
@@ -301,12 +340,21 @@ public final class ThaiViterbiTokenizer {
     /**
      * Attempts to decompose a compound word into two or more dictionary words.
      *
+     * <p>Decomposition is refused (returns {@code null}) when:
+     * <ul>
+     *   <li>the word is listed in {@code atomic-words.txt} (single morphemes
+     *       that split by coincidence, e.g. ตาราง), or</li>
+     *   <li>any resulting part is a closed-class function word
+     *       (e.g. กรมการ into กรม|การ), which would pollute the index.</li>
+     * </ul>
+     *
      * @param word the compound word to decompose
      * @return a list of sub-words if the word can be decomposed into two or more
      *         dictionary words; {@code null} if the word is not a compound word.
      */
     public List<String> decompose(String word) {
         if (word == null || word.length() < 3) return null;
+        if (ATOMIC_WORDS.contains(word)) return null;
         int[] runes = word.codePoints().toArray();
         int n = runes.length;
         if (n < 3) return null;
@@ -361,6 +409,12 @@ public final class ThaiViterbiTokenizer {
         }
 
         java.util.Collections.reverse(parts);
+
+        for (String part : parts) {
+            if (FUNCTION_PARTS.contains(part)) {
+                return null;
+            }
+        }
         return parts;
     }
 

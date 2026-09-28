@@ -1,0 +1,9 @@
+# Thai single-morpheme words that must never be decompounded.
+#
+# These words split into dictionary words by coincidence (e.g. ตาราง would
+# decompose into ตา|ราง, สำหรับ into สำ|หรับ), producing misleading search
+# tokens. Listed words are always kept whole in every decompound mode.
+#
+# One word per line, sorted by codepoint. Extend when new reports arrive.
+ตาราง
+สำหรับ
