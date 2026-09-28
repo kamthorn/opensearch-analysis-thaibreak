@@ -110,6 +110,17 @@ public class ThaiViterbiTokenizerTests extends LuceneTestCase {
         assertTrue("Expected ≥ 5 tokens for long sentence", tokens.size() >= 5);
     }
 
+    public void testHyphenatedCompositesSplitSymmetrically() {
+        // Reported: searching โควิด found nothing because documents write
+        // โควิด-19. Hyphen/number composites are compositional, so the
+        // dictionary must not contain them as atomic units: query and
+        // documents then split identically and match.
+        assertEquals(List.of("โควิด"), tok().tokenize("โควิด", false));
+        assertEquals(
+            List.of("โรค", "โควิด", "-", "19", "ระบาด"),
+            tok().tokenize("โรคโควิด-19ระบาด", false));
+    }
+
     public void testDecompose() {
         // Compound word with both parts in dictionary: สนามบิน -> สนาม, บิน
         List<String> parts = tok().decompose("สนามบิน");

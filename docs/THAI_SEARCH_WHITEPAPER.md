@@ -9,7 +9,7 @@ Thai is a Brahmic-derived, non-segmented, tonal language written continuously wi
 3. **Common Input Errors:** Zero native tolerance for keyboard language switch errors (*g-hk* $\leftrightarrow$ *เก้า*), homophones (*การ* vs *กาล*), colloquial tone mark discrepancies (*นะคะ* vs *นะค่ะ*), and number representations (*ห้าหมื่น* vs *50000*).
 4. **Resource Volatility:** Unbounded memory growth during global dynamic programming on large OCR/PDF documents.
 
-The `opensearch-analysis-thaibreak` plugin and its upstream Apache Lucene companion PRs (#16717, #16718, #16720, #16722, #16727 — all merged) provide a production-grade, state-of-the-art solution to these challenges. The plugin additionally ships Royal Institute collation, acronym expansion, and RTGS romanization filters, a person-name analyzer preset, and a 41,779-entry weighted dictionary.
+The `opensearch-analysis-thaibreak` plugin and its upstream Apache Lucene companion PRs (#16717, #16718, #16720, #16722, #16727 — all merged) provide a production-grade, state-of-the-art solution to these challenges. The plugin additionally ships Royal Institute collation, acronym expansion, and RTGS romanization filters, a person-name analyzer preset, and a 41,763-entry weighted dictionary.
 
 ---
 
@@ -45,7 +45,7 @@ Because the DP Trellis is bounded to small localized windows, memory consumption
 
 ### 1.3 Weighted Dictionary & Compact DAWG
 
-The segmentation quality is driven by a **41,779-entry** dictionary merged from the `thai-break` corpus and `thai-break-dict-extra`:
+The segmentation quality is driven by a **41,763-entry** dictionary merged from the `thai-break` corpus and `thai-break-dict-extra`:
 
 - Every entry carries an explicit frequency weight (uniform baseline `1.00`, category tiers up to `8.00`), feeding directly into $w(i, j)$ of the Viterbi recurrence.
 - Coverage includes general vocabulary, 5,827 subdistricts (ตำบล), slang/bigram corpora, and low-weight (`0.5`) dotless month abbreviations pinned so they cannot hijack ordinary text.
