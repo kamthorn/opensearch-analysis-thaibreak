@@ -16,10 +16,10 @@ package org.opensearch.analysis.thai;
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.opensearch.analysis.thai.ThaiCollationKey.Decomposition;
+import org.opensearch.analysis.thai.ThaiCollationKey.Strength;
 
 import java.io.IOException;
-import java.text.CollationKey;
-import java.text.Collator;
 
 /**
  * Token filter that encodes Thai tokens into sortable Collation Key hex representations
@@ -30,25 +30,38 @@ import java.text.Collator;
  * vowels are properly reordered after initial consonants (e.g. {@code "เกาะ"} sorts
  * between {@code "กบ"} and {@code "ขวด"}).
  *
+ * <p>Ordering is produced by {@link ThaiCollationKey}, a self-contained implementation
+ * that does not depend on the JVM's pluggable {@link java.text.Collator} locale
+ * provider. The resulting keys are therefore identical on every JDK and locale,
+ * making index sorting and aggregations reproducible across nodes.
+ *
  * <p>Compatible with OpenSearch Normalizers on {@code keyword} fields for fast,
  * ICU-free Thai index sorting and aggregations.
  */
 public final class ThaiCollationFilter extends TokenFilter {
 
-    private static final char[] HEX_DIGITS = "0123456789abcdef".toCharArray();
-
-    private final Collator collator;
+    private final ThaiCollationKey collationKey;
     private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
 
     /**
      * Constructs a new {@link ThaiCollationFilter}.
      *
-     * @param input    input token stream
-     * @param collator configured Thai Collator instance
+     * @param input        input token stream
+     * @param collationKey configured collation key generator
      */
-    public ThaiCollationFilter(TokenStream input, Collator collator) {
+    public ThaiCollationFilter(TokenStream input, ThaiCollationKey collationKey) {
         super(input);
-        this.collator = collator;
+        this.collationKey = collationKey;
+    }
+
+    /**
+     * Convenience constructor using the default {@link Strength#TERTIARY} strength
+     * and {@link Decomposition#NONE} decomposition.
+     *
+     * @param input input token stream
+     */
+    public ThaiCollationFilter(TokenStream input) {
+        this(input, new ThaiCollationKey(Strength.TERTIARY, Decomposition.NONE));
     }
 
     @Override
@@ -57,20 +70,9 @@ public final class ThaiCollationFilter extends TokenFilter {
             return false;
         }
 
-        String text = termAtt.toString();
-        CollationKey key = collator.getCollationKey(text);
-        byte[] bytes = key.toByteArray();
-
+        String hex = collationKey.hexKey(termAtt.toString());
         termAtt.setEmpty();
-        termAtt.resizeBuffer(bytes.length * 2);
-        char[] buf = termAtt.buffer();
-        int idx = 0;
-        for (byte b : bytes) {
-            buf[idx++] = HEX_DIGITS[(b >> 4) & 0x0F];
-            buf[idx++] = HEX_DIGITS[b & 0x0F];
-        }
-        termAtt.setLength(bytes.length * 2);
-
+        termAtt.append(hex);
         return true;
     }
 }

@@ -17,22 +17,21 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.opensearch.analysis.thai.ThaiCollationKey.Decomposition;
+import org.opensearch.analysis.thai.ThaiCollationKey.Strength;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.text.Collator;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 
 public class ThaiCollationFilterTests extends BaseTokenStreamTestCase {
 
-    private String getCollationKeyHex(String word, Collator collator) throws IOException {
+    private String getCollationKeyHex(String word, ThaiCollationKey key) throws IOException {
         WhitespaceTokenizer tokenizer = new WhitespaceTokenizer();
         tokenizer.setReader(new StringReader(word));
-        ThaiCollationFilter filter = new ThaiCollationFilter(tokenizer, collator);
+        ThaiCollationFilter filter = new ThaiCollationFilter(tokenizer, key);
 
         CharTermAttribute termAtt = filter.addAttribute(CharTermAttribute.class);
         filter.reset();
@@ -44,7 +43,7 @@ public class ThaiCollationFilterTests extends BaseTokenStreamTestCase {
     }
 
     public void testThaiAlphabeticalSortingOrder() throws IOException {
-        Collator collator = Collator.getInstance(Locale.forLanguageTag("th-TH"));
+        ThaiCollationKey key = new ThaiCollationKey(Strength.TERTIARY, Decomposition.NONE);
 
         // Classic Thai sorting challenge: words with leading vowels (เกาะ, ไก่)
         // must be reordered after initial consonant 'ก', not sorted at the end after 'ฮ'.
@@ -61,7 +60,7 @@ public class ThaiCollationFilterTests extends BaseTokenStreamTestCase {
 
         List<WordKey> entries = new ArrayList<>();
         for (String w : words) {
-            entries.add(new WordKey(w, getCollationKeyHex(w, collator)));
+            entries.add(new WordKey(w, getCollationKeyHex(w, key)));
         }
 
         // Sort by binary/lexicographical order of generated Hex Collation Keys
@@ -74,28 +73,25 @@ public class ThaiCollationFilterTests extends BaseTokenStreamTestCase {
     }
 
     public void testToneStrengthLevels() throws IOException {
-        Collator primaryCollator = Collator.getInstance(Locale.forLanguageTag("th-TH"));
-        primaryCollator.setStrength(Collator.PRIMARY);
-
-        Collator tertiaryCollator = Collator.getInstance(Locale.forLanguageTag("th-TH"));
-        tertiaryCollator.setStrength(Collator.TERTIARY);
+        ThaiCollationKey primary = new ThaiCollationKey(Strength.PRIMARY, Decomposition.NONE);
+        ThaiCollationKey tertiary = new ThaiCollationKey(Strength.TERTIARY, Decomposition.NONE);
 
         // Same consonants and vowels, different tone marks
         String w1 = "เสือ";
         String w2 = "เสื่อ";
         String w3 = "เสื้อ";
 
-        String pKey1 = getCollationKeyHex(w1, primaryCollator);
-        String pKey2 = getCollationKeyHex(w2, primaryCollator);
-        String pKey3 = getCollationKeyHex(w3, primaryCollator);
+        String pKey1 = getCollationKeyHex(w1, primary);
+        String pKey2 = getCollationKeyHex(w2, primary);
+        String pKey3 = getCollationKeyHex(w3, primary);
 
         // Primary strength ignores tone differences
         assertEquals("Primary strength must treat different tones as equal", pKey1, pKey2);
         assertEquals("Primary strength must treat different tones as equal", pKey2, pKey3);
 
-        String tKey1 = getCollationKeyHex(w1, tertiaryCollator);
-        String tKey2 = getCollationKeyHex(w2, tertiaryCollator);
-        String tKey3 = getCollationKeyHex(w3, tertiaryCollator);
+        String tKey1 = getCollationKeyHex(w1, tertiary);
+        String tKey2 = getCollationKeyHex(w2, tertiary);
+        String tKey3 = getCollationKeyHex(w3, tertiary);
 
         // Tertiary strength differentiates tones properly
         assertFalse(tKey1.equals(tKey2));
@@ -105,10 +101,10 @@ public class ThaiCollationFilterTests extends BaseTokenStreamTestCase {
     }
 
     public void testMultiTokenStreamCollation() throws IOException {
-        Collator collator = Collator.getInstance(Locale.forLanguageTag("th-TH"));
+        ThaiCollationKey key = new ThaiCollationKey(Strength.TERTIARY, Decomposition.NONE);
         WhitespaceTokenizer tokenizer = new WhitespaceTokenizer();
         tokenizer.setReader(new StringReader("กบ ขวด ฮูก"));
-        ThaiCollationFilter filter = new ThaiCollationFilter(tokenizer, collator);
+        ThaiCollationFilter filter = new ThaiCollationFilter(tokenizer, key);
 
         CharTermAttribute termAtt = filter.addAttribute(CharTermAttribute.class);
         filter.reset();
@@ -123,5 +119,32 @@ public class ThaiCollationFilterTests extends BaseTokenStreamTestCase {
         assertEquals(3, keys.size());
         assertTrue(keys.get(0).compareTo(keys.get(1)) < 0);
         assertTrue(keys.get(1).compareTo(keys.get(2)) < 0);
+    }
+
+    public void testDeterministicAcrossLocaleAndStrengthDefaults() {
+        // The same input must always yield the same key, independent of the JVM's
+        // default locale or java.locale.providers setting.
+        ThaiCollationKey key = new ThaiCollationKey(Strength.TERTIARY, Decomposition.NONE);
+        String expected = key.hexKey("เกาะ");
+        assertEquals(expected, key.hexKey("เกาะ"));
+        assertEquals(expected, new ThaiCollationKey(Strength.TERTIARY, Decomposition.NONE).hexKey("เกาะ"));
+
+        // Leading vowel is emitted after its consonant: ก (0x010000) then เ (0x020000).
+        assertTrue(expected.startsWith("010000020000"));
+    }
+
+    public void testDecompositionNormalizesSaraAm() {
+        ThaiCollationKey none = new ThaiCollationKey(Strength.TERTIARY, Decomposition.NONE);
+        ThaiCollationKey canonical = new ThaiCollationKey(Strength.TERTIARY, Decomposition.CANONICAL);
+
+        // "กำ" (Sara Am) vs explicit "กํา" (Nikhahit + Sara Aa)
+        assertFalse(none.hexKey("กำ").equals(none.hexKey("กํา")));
+        assertEquals(canonical.hexKey("กำ"), canonical.hexKey("กํา"));
+    }
+
+    public void testEmptyAndNullInput() {
+        ThaiCollationKey key = new ThaiCollationKey(Strength.PRIMARY, Decomposition.NONE);
+        assertEquals("", key.hexKey(""));
+        assertEquals("", key.hexKey(null));
     }
 }

@@ -23,6 +23,13 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 - **New Analyzer Preset**:
   - **`thaibreak_person`** — tuned for Thai person names and entity search.
 
+### 🐛 Bug Fixes
+
+- **Deterministic Thai Collation Keys**:
+  - `thai_collation` no longer uses `java.text.Collator`. Keys are now produced by a self-contained Royal Institute comparator (`ThaiCollationKey`), so they are **identical on every JDK and locale**.
+  - Fixes non-deterministic sort order caused by the JDK's pluggable locale provider — CLDR's Thai rules reorder leading vowels differently on JDK 21 (`COMPAT`/`CLDR`) than on JDK 25.
+  - `decomposition` default is now `none`; `canonical`/`full` decompose Sara Am (U+0E33) into Nikhahit + Sara Aa.
+
 ### 📝 Documentation
 
 - Added OpenSearch Core Upstream RFC [#23151](https://github.com/opensearch-project/OpenSearch/issues/23151) link.
