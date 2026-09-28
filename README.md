@@ -368,6 +368,7 @@ Empirical results measured on Linux amd64 (JDK 25, 20,000 iterations per workloa
 | [#16718](https://github.com/apache/lucene/pull/16718) | Modern Thai Stopwords | 🟣 **Merged** |
 | [#16720](https://github.com/apache/lucene/pull/16720) | ThaiRepeatFilter + OffsetAttribute fix | 🟣 **Merged** |
 | [#16722](https://github.com/apache/lucene/pull/16722) | User Dictionary Support | 🟣 **Merged** |
+| [#16727](https://github.com/apache/lucene/pull/16727) | Configurable Buffer & Thai Safe Boundary ([#10153](https://github.com/apache/lucene/issues/10153)) | 🟢 **Open** |
 
 ## License
 
