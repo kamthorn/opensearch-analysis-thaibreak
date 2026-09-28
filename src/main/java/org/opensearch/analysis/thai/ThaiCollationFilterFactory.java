@@ -20,11 +20,18 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.index.analysis.AbstractTokenFilterFactory;
+import org.opensearch.index.analysis.NormalizingTokenFilterFactory;
 
 import java.util.Locale;
 
 /**
  * OpenSearch factory for {@link ThaiCollationFilter}.
+ *
+ * <p>Implements {@link NormalizingTokenFilterFactory} so the filter can be used
+ * inside custom {@code normalizer} definitions on {@code keyword} fields (e.g.
+ * for Thai sort keys). The inherited default {@code normalize()} delegates to
+ * {@link #create}, which is correct here: the filter rewrites each token
+ * in place to its collation key.
  *
  * <p>Supported settings:
  * <ul>
@@ -32,7 +39,8 @@ import java.util.Locale;
  *   <li>{@code decomposition}: {@code none} (default), {@code canonical}, or {@code full}</li>
  * </ul>
  */
-public final class ThaiCollationFilterFactory extends AbstractTokenFilterFactory {
+public final class ThaiCollationFilterFactory extends AbstractTokenFilterFactory
+        implements NormalizingTokenFilterFactory {
 
     private final ThaiCollationKey collationKey;
 
