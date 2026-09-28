@@ -191,8 +191,8 @@ Just like `analysis-nori` and `analysis-kuromoji`, `thaibreak` supports compound
 ### Keyboard Mis-typing Filters (`thaibreak_keyboard`)
 
 Allows auto-correcting and matching queries typed without switching keyboard layout:
-- **`char_filter: thaibreak_keyboard`**: Pre-tokenization stream conversion (e.g. `l;ylfu` &rarr; `สวัสดี`). Ideal for query analyzers before tokenization so that words can be properly segmented.
-- **`token_filter: thaibreak_keyboard`**: Token-level synonym emission (e.g. emits original `l;ylfu` with `posInc=1` and converted `สวัสดี` with `posInc=0`).
+- **`char_filter: thaibreak_keyboard`**: Pre-tokenization stream conversion (e.g. `l;ylfu` &rarr; `สวัสดี`). **Required** for query analyzers: it converts before tokenization so that words can be properly segmented.
+- **`token_filter: thaibreak_keyboard`** (deprecated): converts only whole surviving tokens. After `thaibreak` tokenization a mistyped query is already fragmented (`l` `;` `ylfu`), so per-token conversion cannot recover the intended word — use the char filter instead. Kept only for single-token streams such as `keyword` fields.
 
 #### Parameters:
 - `direction`: `qwerty_to_kedmanee` (default), `kedmanee_to_qwerty`, or `both` (token filter only).
