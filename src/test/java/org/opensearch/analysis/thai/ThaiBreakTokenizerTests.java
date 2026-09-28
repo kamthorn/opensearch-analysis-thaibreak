@@ -254,6 +254,21 @@ public class ThaiBreakTokenizerTests extends BaseTokenStreamTestCase {
         assertTrue("Expected thousands of tokens for 50KB text, got: " + tokenCount, tokenCount > 3000);
     }
 
+    public void testAtomicWordsStayWholeInMixedMode() throws IOException {
+        // Reported bug: ตาราง decomposed into ตา|ราง, สำหรับ into สำ|หรับ.
+        // Atomic single morphemes must survive MIXED mode as single tokens.
+        for (String word : new String[]{"ตาราง", "สำหรับ"}) {
+            Tokenizer tok = new ThaiBreakTokenizer(trie, DecompoundMode.MIXED);
+            tok.setReader(new StringReader(word));
+            assertTokenStreamContents(
+                tok,
+                new String[]{word},
+                new int[]{0},
+                new int[]{word.length()}
+            );
+        }
+    }
+
     public void testExtraDictionaryWordsAndDecompound() throws IOException {
         // Test abbreviation from extra dictionary
         Tokenizer tokAbbr = newTokenizer();
