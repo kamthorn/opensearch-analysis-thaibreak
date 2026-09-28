@@ -188,6 +188,52 @@ Just like `analysis-nori` and `analysis-kuromoji`, `thaibreak` supports compound
 | `discard` | Decompose compound words into parts and discard the compound. | `["สนาม", "บิน"]` | Simple sub-word matching |
 | `mixed` | Emit **both** the compound token and its sub-tokens as a **Token Graph** with overlapping positions. | `สนามบิน` (posLen: 2), `สนาม` (posInc: 0), `บิน` (posInc: 1) | **Index time** / High recall + Phrase search |
 
+### Bound Morpheme Filter (`filter_bound_morphemes`)
+
+The bundled dictionary includes short Pali/Sanskrit-derived prefixes (e.g. `สุ` "good", `อภิ` "over") that are
+real headwords in the Royal Institute Dictionary but are essentially **never used as standalone words** — they
+only ever appear glued to something else (`สุ` + `ขภาพ` = `สุขภาพ`, never `สุ` alone). Because the Viterbi
+tokenizer treats every dictionary word as a candidate token regardless of how rarely it stands alone, an unknown
+compound (typically a person's name) that happens to contain one of these fragments can fracture around it —
+e.g. the surname `สุรไชย` splits into `สุ` + `ร` + `ไชย` instead of staying one unrecognized (OOV) token, because
+`สุ` and `ไชย` are both real dictionary entries and the character `ร` between them isn't.
+
+Setting `filter_bound_morphemes: true` excludes ~1,000 such entries — identified by frequency analysis against
+the [LST20](https://huggingface.co/datasets/lst20) gold-segmented corpus (a word counts as "bound" if it occurs
+standalone at most 4 times but as a prefix/suffix of another word at least 15 times, in ~2.6M tokens) — from
+ever matching **on their own**. This does not remove them from the dictionary entirely: they still work as part
+of any longer word they normally appear in (`สุขภาพ` is unaffected), and an explicit `user_dictionary` /
+`user_dictionary_rules` entry for the same word still overrides the exclusion. Only their ability to be
+mistaken for a complete word by themselves is removed, which lets the existing "merge consecutive unknown
+tokens" behavior correctly coalesce cases like `สุรไชย` into one OOV token instead of three fragments.
+
+Validated on the LST20 **test** split (held out from the word list itself, 483 documents / ~785K characters):
+boundary-level F1 improves from 93.19% to 93.30% (net +497 correctly placed word boundaries — 1,146 fixed vs.
+649 newly wrong), with the regressions/fixes evenly spread across many different words rather than concentrated
+in one problem case.
+
+```json
+PUT /thai-names-index
+{
+  "settings": {
+    "analysis": {
+      "tokenizer": {
+        "thai_names": {
+          "type": "thaibreak",
+          "filter_bound_morphemes": true
+        }
+      },
+      "analyzer": {
+        "thai_names": {
+          "type": "custom",
+          "tokenizer": "thai_names"
+        }
+      }
+    }
+  }
+}
+```
+
 ### Keyboard Mis-typing Filters (`thaibreak_keyboard`)
 
 Allows auto-correcting and matching queries typed without switching keyboard layout:

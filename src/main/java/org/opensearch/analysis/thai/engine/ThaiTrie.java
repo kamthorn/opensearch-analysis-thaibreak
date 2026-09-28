@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Prefix trie / minimal automaton for fast Thai dictionary lookups.
@@ -38,6 +39,17 @@ public final class ThaiTrie {
 
     private double maxWeight = 1.0;
     private double totalWeight = 0.0;
+
+    /**
+     * Exact words the base dictionary/overlay must never emit as a
+     * {@link PrefixMatch} even though they are present, e.g. bound morphemes like
+     * {@code สุ}/{@code ไชย} that almost never occur as a standalone word in real
+     * text (see {@code filter_bound_morphemes: true}). {@code null}/empty means
+     * "no exclusions" (default, zero behavior change). An explicit
+     * {@code user_dictionary} override for the same word still wins — see
+     * {@link #exclude(Set)}.
+     */
+    private Set<String> excluded;
 
     /**
      * Longest dictionary word in code points. Drives the prefix-scan window
@@ -204,6 +216,24 @@ public final class ThaiTrie {
     }
 
     /**
+     * Marks {@code words} as never returned from {@link #prefixes}
+     * even though they exist in the base dictionary — the Viterbi tokenizer then
+     * treats any occurrence as unrecognized (OOV), which the tokenizer's existing
+     * "merge consecutive unknown tokens" step coalesces with neighboring OOV runs.
+     * An explicit {@code user_dictionary}/{@code user_dictionary_rules} entry for
+     * the same word (positive overlay weight) still wins over this exclusion.
+     *
+     * <p>Thread-unsafe like {@link #add}; call once, right after {@link #copy()},
+     * before the trie is shared across concurrent tokenizer instances — never on
+     * a trie other callers may already be reading (e.g. the process-wide default).
+     *
+     * @param words exact words to exclude; {@code null} or empty clears exclusions
+     */
+    public void exclude(Set<String> words) {
+        this.excluded = (words == null || words.isEmpty()) ? null : words;
+    }
+
+    /**
      * Returns an independent copy of this trie. Mutating the copy (e.g. via
      * {@link #add}) never affects the original — use this before merging a
      * user dictionary into a trie that may be shared by other callers.
@@ -259,6 +289,7 @@ public final class ThaiTrie {
                 if (dawg.isFinal(state)) {
                     String sub = null;
                     double w = 1.0;
+                    Double overlayWeight = null;
                     if (!customWeights.isEmpty()) {
                         sub = new String(runes, start, i + 1 - start);
                         Double cw = customWeights.get(sub);
@@ -268,12 +299,23 @@ public final class ThaiTrie {
                         if (sub == null) {
                             sub = new String(runes, start, i + 1 - start);
                         }
-                        Double ow = overlay.get(sub);
-                        if (ow != null && ow > 0.0) {
-                            w = ow;
+                        overlayWeight = overlay.get(sub);
+                        if (overlayWeight != null && overlayWeight > 0.0) {
+                            w = overlayWeight;
                         }
                     }
-                    matches.add(new PrefixMatch(i + 1, w));
+                    boolean excludedHit = false;
+                    if (excluded != null && !excluded.isEmpty()) {
+                        if (sub == null) {
+                            sub = new String(runes, start, i + 1 - start);
+                        }
+                        // An explicit positive overlay weight (user dictionary) overrides exclusion.
+                        boolean hasOverlayOverride = overlayWeight != null && overlayWeight > 0.0;
+                        excludedHit = !hasOverlayOverride && excluded.contains(sub);
+                    }
+                    if (!excludedHit) {
+                        matches.add(new PrefixMatch(i + 1, w));
+                    }
                 }
             }
 

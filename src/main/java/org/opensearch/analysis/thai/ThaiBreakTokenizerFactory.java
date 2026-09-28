@@ -14,6 +14,7 @@
 package org.opensearch.analysis.thai;
 
 import org.apache.lucene.analysis.Tokenizer;
+import org.opensearch.analysis.thai.engine.BoundMorphemeSets;
 import org.opensearch.analysis.thai.engine.ThaiDictionaryLoader;
 import org.opensearch.analysis.thai.engine.ThaiTrie;
 import org.opensearch.common.settings.Settings;
@@ -49,6 +50,17 @@ import java.util.concurrent.atomic.AtomicReference;
  *     <td>{@code decompound_mode}</td>
  *     <td>{@code none}</td>
  *     <td>Compound word decompounding mode: {@code none}, {@code discard}, or {@code mixed}.</td>
+ *   </tr>
+ *   <tr>
+ *     <td>{@code filter_bound_morphemes}</td>
+ *     <td>{@code false}</td>
+ *     <td>When {@code true}, excludes ~1,000 bundled dictionary entries that corpus evidence
+ *         (LST20) shows are almost always a bound prefix/suffix rather than a standalone word
+ *         (e.g. {@code สุ}, {@code ไชย}) from ever matching on their own. Fixes cases like
+ *         {@code สุรไชย} wrongly splitting into {@code สุ|ร|ไชย}, without affecting compound
+ *         recognition elsewhere — see {@link org.opensearch.analysis.thai.engine.BoundMorphemeSets}.
+ *         An explicit {@code user_dictionary}/{@code user_dictionary_rules} entry for the same
+ *         word still overrides the exclusion.</td>
  *   </tr>
  * </table>
  *
@@ -107,8 +119,11 @@ public final class ThaiBreakTokenizerFactory implements TokenizerFactory {
 
         String userDictPath = settings.get("user_dictionary");
         List<String> rules = settings.getAsList("user_dictionary_rules", null);
+        boolean filterBoundMorphemes = settings.getAsBoolean("filter_bound_morphemes", false);
 
-        if ((userDictPath != null && !userDictPath.isBlank()) || (rules != null && !rules.isEmpty())) {
+        if ((userDictPath != null && !userDictPath.isBlank()) || (rules != null && !rules.isEmpty())
+                || filterBoundMorphemes) {
+            // Never mutate the process-wide shared default trie in place.
             t = t.copy();
         }
 
@@ -134,6 +149,12 @@ public final class ThaiBreakTokenizerFactory implements TokenizerFactory {
 
         if (rules != null && !rules.isEmpty()) {
             ThaiDictionaryLoader.loadFromLines(rules, t);
+        }
+
+        // Applied last so an explicit user_dictionary entry for the same word
+        // still overrides the exclusion (see ThaiTrie#exclude).
+        if (filterBoundMorphemes) {
+            t.exclude(BoundMorphemeSets.get());
         }
 
         return t;
