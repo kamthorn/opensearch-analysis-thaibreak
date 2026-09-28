@@ -5,7 +5,7 @@ All notable changes to `opensearch-analysis-thaibreak` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).  
 Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18.0).
 
-## [Unreleased]
+## [v1.3.1] — 2026-09-28
 
 ### 🐛 Bug Fixes
 
