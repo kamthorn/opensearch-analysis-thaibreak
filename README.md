@@ -324,6 +324,56 @@ PUT /thai-acronym-index
 }
 ```
 
+### Thai Collation Filter & Normalizer (`thaibreak_collation` / `thai_collation`)
+
+Provides **ICU-free** Thai alphabetical sorting compliant with Royal Institute (ราชบัณฑิตยสภา) rules.
+
+Standard UTF-8 binary sort fails for Thai because leading vowels (`เ-`, `แ-`, `โ-`, `ใ-`, `ไ-`) have code points (`\u0E40`..`\u0E44`) higher than consonants (`\u0E01`..`\u0E2E`), incorrectly placing words like `เกาะ` or `ไก่` after `ฮูก`.
+
+`thaibreak_collation` encodes tokens into hex-serialized CollationKeys using the standard Java JDK Thai Collator (`th-TH`), providing correct alphabetical ordering without needing `analysis-icu`:
+- Natural sorting order: `กบ` &rarr; `เกาะ` &rarr; `ไก่` &rarr; `ขวด` &rarr; `ฮูก`
+- Can be used in **token filters** or inside custom **normalizers** on `keyword` fields for sort and aggregations.
+
+#### Parameters:
+- `strength`: `primary`, `secondary`, `tertiary` (default), or `identical`.
+- `decomposition`: `canonical` (default), `full`, or `no`.
+
+```json
+PUT /thai-sorting-index
+{
+  "settings": {
+    "analysis": {
+      "filter": {
+        "thai_collation_filter": {
+          "type": "thaibreak_collation",
+          "strength": "tertiary"
+        }
+      },
+      "normalizer": {
+        "thai_sort_normalizer": {
+          "type": "custom",
+          "char_filter": [],
+          "filter": ["thai_collation_filter"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "title": {
+        "type": "text",
+        "analyzer": "thaibreak",
+        "fields": {
+          "sort": {
+            "type": "keyword",
+            "normalizer": "thai_sort_normalizer"
+          }
+        }
+      }
+    }
+  }
+}
+```
 
 ## Building from source
 
