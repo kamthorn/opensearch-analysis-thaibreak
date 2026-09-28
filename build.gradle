@@ -69,6 +69,7 @@ tasks.named('forbiddenApisTest').configure {
 forbiddenPatterns {
     exclude '**/words.txt'
     exclude '**/words.dawg'
+    exclude '**/acronyms.txt'
 }
 
 buildscript {

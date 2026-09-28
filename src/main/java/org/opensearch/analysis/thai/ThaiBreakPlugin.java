@@ -21,6 +21,8 @@ import org.opensearch.indices.analysis.AnalysisModule;
 import org.opensearch.plugins.AnalysisPlugin;
 import org.opensearch.plugins.Plugin;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -88,15 +90,17 @@ public final class ThaiBreakPlugin extends Plugin implements AnalysisPlugin {
 
     @Override
     public Map<String, AnalysisModule.AnalysisProvider<TokenFilterFactory>> getTokenFilters() {
-        return Map.of(
-            "thaibreak_keyboard", ThaiKeyboardTokenFilterFactory::new,
-            "thai_keyboard", ThaiKeyboardTokenFilterFactory::new,
-            "thaibreak_soundex", ThaiSoundexTokenFilterFactory::new,
-            "thai_soundex", ThaiSoundexTokenFilterFactory::new,
-            "thaibreak_tone", ThaiToneFilterFactory::new,
-            "thai_tone", ThaiToneFilterFactory::new,
-            "thaibreak_number", ThaiNumberFilterFactory::new,
-            "thai_number", ThaiNumberFilterFactory::new
-        );
+        Map<String, AnalysisModule.AnalysisProvider<TokenFilterFactory>> filters = new HashMap<>();
+        filters.put("thaibreak_keyboard", ThaiKeyboardTokenFilterFactory::new);
+        filters.put("thai_keyboard", ThaiKeyboardTokenFilterFactory::new);
+        filters.put("thaibreak_soundex", ThaiSoundexTokenFilterFactory::new);
+        filters.put("thai_soundex", ThaiSoundexTokenFilterFactory::new);
+        filters.put("thaibreak_tone", ThaiToneFilterFactory::new);
+        filters.put("thai_tone", ThaiToneFilterFactory::new);
+        filters.put("thaibreak_number", ThaiNumberFilterFactory::new);
+        filters.put("thai_number", ThaiNumberFilterFactory::new);
+        filters.put("thaibreak_acronym", ThaiAcronymFilterFactory::new);
+        filters.put("thai_acronym", ThaiAcronymFilterFactory::new);
+        return Collections.unmodifiableMap(filters);
     }
 }
