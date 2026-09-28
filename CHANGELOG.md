@@ -5,6 +5,31 @@ All notable changes to `opensearch-analysis-thaibreak` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).  
 Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18.0).
 
+## [v1.2.0] — 2026-09-28
+
+### 🚀 Enhancements
+
+- **Refreshed Bundled Dictionary (41,778 Words, +6,706)**:
+  - Rebuilt from `thai-break` corpus (25,907 words) merged with the updated `thai-break-dict-extra` (18,110 weighted entries).
+  - Adds **5,827 subdistricts (ตำบล)**, 1,873 Thai2fit general-vocabulary terms, CC0 Wisesight slang/bigrams, and dotless month abbreviations (`มค`, `มีค`, …) pinned at weight `0.5` so they cannot hijack ordinary text.
+  - All entries now carry an explicit frequency weight (uniform baseline `1.00`, category tiers up to `8.00`).
+  - Recompiled `words.dawg` (336 KB, 41,017 states) — load time remains sub-millisecond.
+
+- **New Token Filters**:
+  - **`thai_acronym`** — smart acronym and abbreviation expansion.
+  - **`thai_collation`** — ICU-free Royal Institute alphabetical sorting.
+  - **`thai_romanization`** — RTGS transcription and karaoke search.
+
+- **New Analyzer Preset**:
+  - **`thaibreak_person`** — tuned for Thai person names and entity search.
+
+### 📝 Documentation
+
+- Added OpenSearch Core Upstream RFC [#23151](https://github.com/opensearch-project/OpenSearch/issues/23151) link.
+- Updated Apache Lucene PR [#16727](https://github.com/apache/lucene/pull/16727) status to Merged.
+
+---
+
 ## [v1.1.0] — 2026-09-28
 
 ### 🚀 Enhancements & Performance
