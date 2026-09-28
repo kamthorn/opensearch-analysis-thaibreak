@@ -19,6 +19,7 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
 import org.opensearch.analysis.thai.ThaiCollationKey.Decomposition;
 import org.opensearch.analysis.thai.ThaiCollationKey.Strength;
+import org.opensearch.index.analysis.NormalizingTokenFilterFactory;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -146,5 +147,11 @@ public class ThaiCollationFilterTests extends BaseTokenStreamTestCase {
         ThaiCollationKey key = new ThaiCollationKey(Strength.PRIMARY, Decomposition.NONE);
         assertEquals("", key.hexKey(""));
         assertEquals("", key.hexKey(null));
+    }
+
+    public void testFactoryIsUsableInNormalizers() {
+        // Reported: OpenSearch rejects thaibreak_collation inside a custom
+        // normalizer unless the factory implements NormalizingTokenFilterFactory.
+        assertTrue(NormalizingTokenFilterFactory.class.isAssignableFrom(ThaiCollationFilterFactory.class));
     }
 }
