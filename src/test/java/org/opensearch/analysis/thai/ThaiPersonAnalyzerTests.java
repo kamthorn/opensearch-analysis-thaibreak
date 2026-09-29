@@ -93,11 +93,16 @@ public class ThaiPersonAnalyzerTests extends LuceneTestCase {
         TokenStream ts2 = analyzer.tokenStream("name", "นัฐพล");
         List<String> terms2 = collectTerms(ts2);
 
-        // "ณัฐ" and "นัฐ" must share the identical Udom83 Soundex signature "น800000"
-        String natSoundex = ThaiSoundex.udom83("ณัฐ");
-        assertEquals("Udom83 Soundex must be identical for 'ณัฐ' and 'นัฐ'", natSoundex, ThaiSoundex.udom83("นัฐ"));
-        assertTrue(terms1.contains(natSoundex));
-        assertTrue(terms2.contains(natSoundex));
+        // ณัฐพล and นัฐพล are both bundled dictionary words (given names), so soundex is
+        // computed once for the whole name (v1.3.1+: whole-token scoping) rather than per
+        // decompound fragment — a more precise signature than matching on the shared first
+        // syllable alone, since it is specific to this exact name pair instead of every
+        // ณัฐ-/นัฐ-prefixed name.
+        String fullNameSoundex = ThaiSoundex.udom83("ณัฐพล");
+        assertEquals("Udom83 Soundex must be identical for 'ณัฐพล' and 'นัฐพล'",
+                fullNameSoundex, ThaiSoundex.udom83("นัฐพล"));
+        assertTrue(terms1.contains(fullNameSoundex));
+        assertTrue(terms2.contains(fullNameSoundex));
 
         // Both full names share the common phonetic stream
         assertEquals("Both homophone streams should have matching Soundex codes",
@@ -115,8 +120,9 @@ public class ThaiPersonAnalyzerTests extends LuceneTestCase {
         assertTrue(terms.contains("พร"));
         assertTrue(terms.contains("ทิพย์"));
 
-        // Thanthakhat stripped version of "ทิพย์" -> "ทิพย"
-        assertTrue("Should contain thanthakhat stripped form 'ทิพย'", terms.contains("ทิพย"));
+        // พรทิพย์ is a bundled dictionary word (given name), so tone-stripping (v1.3.1+:
+        // whole-token scoping) strips the whole name -> "พรทิพย", not just its "ทิพย์" half.
+        assertTrue("Should contain thanthakhat stripped form 'พรทิพย'", terms.contains("พรทิพย"));
     }
 
     public void testMixedDecompoundWithCustomDictionary() throws IOException {
