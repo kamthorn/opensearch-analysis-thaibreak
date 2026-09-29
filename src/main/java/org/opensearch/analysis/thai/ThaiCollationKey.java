@@ -165,23 +165,38 @@ public final class ThaiCollationKey {
 
     private int[] weights(String text) {
         String normalized = decompose(text);
-        List<Integer> out = new ArrayList<>(normalized.length() + 4);
+        List<Integer> primary = new ArrayList<>(normalized.length() + 4);
+        List<List<Integer>> secondary = new ArrayList<>(normalized.length() + 4);
         int i = 0;
         int n = normalized.length();
         while (i < n) {
             char ch = normalized.charAt(i);
             if (isLeadingVowel(ch) && i + 1 < n && isConsonant(normalized.charAt(i + 1))) {
-                char consonant = normalized.charAt(i + 1);
-                addWeight(out, consonant);
-                addWeight(out, ch);
+                addBase(primary, secondary, normalized.charAt(i + 1));
+                addBase(primary, secondary, ch);
                 i += 2;
+            } else if (isMark(ch)) {
+                if (!isSkipped(ch) && !secondary.isEmpty()) {
+                    secondary.get(secondary.size() - 1).add(weight(ch));
+                }
+                i++;
             } else {
-                addWeight(out, ch);
+                addBase(primary, secondary, ch);
                 i++;
             }
         }
+        List<Integer> out = new ArrayList<>(primary);
+        if (strength != Strength.PRIMARY) {
+            // Tone marks and diacritics are a second-level difference: they only
+            // break ties between words whose base letters are identical, so
+            // ห้าง (ห า ง) sorts before แหลม (ห แ ล) as in ICU / glibc th_TH.
+            out.add(0);
+            for (List<Integer> marks : secondary) {
+                out.addAll(marks);
+                out.add(0);
+            }
+        }
         if (strength == Strength.IDENTICAL) {
-            // Final tiebreaker: distinguish raw code-point sequences (e.g. mark order).
             for (int j = 0; j < normalized.length(); j++) {
                 out.add(OTHER_BASE + normalized.charAt(j));
             }
@@ -193,11 +208,13 @@ public final class ThaiCollationKey {
         return result;
     }
 
-    private void addWeight(List<Integer> out, char ch) {
-        if (isSkipped(ch)) {
-            return;
-        }
-        out.add(weight(ch));
+    private static boolean isMark(char ch) {
+        return isToneMark(ch) || isOtherMark(ch);
+    }
+
+    private void addBase(List<Integer> primary, List<List<Integer>> secondary, char ch) {
+        primary.add(weight(ch));
+        secondary.add(new ArrayList<>(2));
     }
 
     private boolean isSkipped(char ch) {
