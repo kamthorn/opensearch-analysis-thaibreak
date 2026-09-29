@@ -9,6 +9,28 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ### 🚀 Enhancements
 
+- **10,077 Thai given names merged into the bundled dictionary** (51,840 words total, up
+  from 41,763, at weight `1.50`): fixes given names composed of two dictionary morphemes
+  wrongly splitting (`สมศักดิ์` → `สม|ศักดิ์`, `ณัฐพล` → `ณัฐ|พล`, `สมชัย` → `สม|ชัย`, ...) — a
+  single dictionary word always beats a 2-word decomposition once the whole name is itself
+  listed. Sourced from
+  [`thai-break-dict-extra`](https://github.com/kamthorn/thai-break-dict-extra)'s
+  `data/proper-names/given-names.txt` (10,133 names, tier weight 1.5) — that project pulls
+  PyThaiNLP's `person_names_female_th.txt`/`person_names_male_th.txt` (Apache-2.0) and
+  excludes any name that also occurs as an ordinary two-word phrase outside a person-name
+  span in the LST20 gold corpus (e.g. `โชคดี` "lucky") so it keeps splitting normally in
+  ordinary text; see that project's `scripts/harvest_given_names.py` for the full selection
+  methodology, and its `scripts/evaluate_lst20.py` for the LST20-test-split validation
+  (word boundary F1 92.63% → 92.89%, +563 correctly segmented words, measured in isolation
+  from dict-extra's other categories). Rebuilt `words.dawg` (51,840 words, 45,696 states,
+  392 KB) from the merged `words.txt`.
+  - Side effect on `thaibreak_person`: since these names are now whole dictionary words,
+    Udom83 soundex/tone-stripping (which is scoped to whole tokens, not decompound
+    fragments — see v1.3.1) is now computed once per full name instead of per first-syllable
+    fragment, giving a *more specific* homophone signature (unique to that exact name pair,
+    e.g. `ณัฐพล`/`นัฐพล`) rather than one shared by every name starting with the same
+    syllable. Existing indices using `thaibreak_person` on affected names should be reindexed
+    to pick up the new signatures.
 - **Bound morpheme filter (`filter_bound_morphemes`)**: new opt-in tokenizer parameter that
   excludes ~1,000 bundled dictionary entries — short Pali/Sanskrit prefixes and similar
   fragments (e.g. `สุ`, `ไชย`) that a gold-segmented corpus (LST20) shows almost never stand
