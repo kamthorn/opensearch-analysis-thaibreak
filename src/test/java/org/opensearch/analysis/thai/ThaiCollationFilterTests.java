@@ -130,8 +130,31 @@ public class ThaiCollationFilterTests extends BaseTokenStreamTestCase {
         assertEquals(expected, key.hexKey("เกาะ"));
         assertEquals(expected, new ThaiCollationKey(Strength.TERTIARY, Decomposition.NONE).hexKey("เกาะ"));
 
-        // Leading vowel is emitted after its consonant: ก (0x010000) then เ (0x020000).
-        assertTrue(expected.startsWith("010000020000"));
+        // Leading vowel is emitted after its consonant: ก (0x010000) then เ (0x030000,
+        // the leading-vowel base — ranked above the following-vowel base 0x020000).
+        assertTrue(expected.startsWith("010000030000"));
+    }
+
+    public void testFollowingVowelsRankBeforeLeadingVowels() throws IOException {
+        ThaiCollationKey key = new ThaiCollationKey(Strength.TERTIARY, Decomposition.NONE);
+
+        // Among words sharing the initial consonant ก, the Royal Institute dictionary
+        // (and ICU's th collation) groups all ten following-vowel forms before any of
+        // the five leading-vowel forms: กะ กัน กา กำ กิ กี กึ กื กุ กู < เก แก โก ใก ไก.
+        // Verified against a live OpenSearch icu_collation_keyword(th) field while
+        // fixing this — see git history for the exact reference ordering.
+        List<String> words = List.of("กก", "กะ", "กัน", "กา", "กำ", "กิ", "กี", "กึ", "กื", "กุ", "กู",
+                "เก", "แก", "โก", "ใก", "ไก");
+
+        record WordKey(String word, String hexKey) {}
+        List<WordKey> entries = new ArrayList<>();
+        for (String w : words) {
+            entries.add(new WordKey(w, getCollationKeyHex(w, key)));
+        }
+        entries.sort(Comparator.comparing(WordKey::hexKey));
+        List<String> sortedWords = entries.stream().map(WordKey::word).toList();
+
+        assertEquals(words, sortedWords);
     }
 
     public void testDecompositionNormalizesSaraAm() {

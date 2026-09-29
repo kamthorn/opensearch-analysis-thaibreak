@@ -26,12 +26,17 @@ import java.util.List;
  * Unicode code points of the Thai block. The generated key is stable across
  * every JVM, locale and {@code java.locale.providers} configuration.
  *
- * <p>Two behaviours are modelled:
+ * <p>Three behaviours are modelled:
  * <ul>
  *   <li><b>Leading-vowel reordering</b>: the leading vowels {@code เ แ โ ใ ไ}
  *       (U+0E40..U+0E44) are emitted <em>after</em> the consonant they precede,
  *       so {@code "เกาะ"} sorts between {@code "กบ"} and {@code "ขวด"} instead of
  *       after {@code "ฮูก"}.</li>
+ *   <li><b>Following-before-leading vowel rank</b>: among words sharing the same
+ *       initial consonant, the ten following vowels ({@code ะ ั า ำ ิ ี ึ ื ุ ู})
+ *       rank below the five leading vowels — e.g. {@code "กา"} sorts before
+ *       {@code "เกา"} — matching the dictionary convention (leading-vowel words
+ *       are grouped at the end of each consonant's section).</li>
  *   <li><b>Strength levels</b>: {@link Strength#PRIMARY} compares base letters
  *       only (tones ignored), {@link Strength#SECONDARY} adds tone marks,
  *       {@link Strength#TERTIARY} (default) adds the remaining diacritics, and
@@ -83,8 +88,14 @@ public final class ThaiCollationKey {
     private static final char REPETITION_MARK = '\u0E46';
 
     private static final int CONSONANT_BASE = 0x010000;
-    private static final int LEADING_VOWEL_BASE = 0x020000;
-    private static final int FOLLOWING_VOWEL_BASE = 0x030000;
+    // Following vowels (ะ ั า ำ ิ ี ึ ื ุ ู, TIS620 0xD0-0xD9) sort before leading
+    // vowels (เ แ โ ใ ไ, TIS620 0xE0-0xE4) among words sharing the same initial
+    // consonant — e.g. กา < เกา, กี < ไก — matching the Royal Institute
+    // dictionary convention and ICU's th collation. This is a distinct axis from
+    // the leading-vowel-to-consonant reordering below (เก emitted as ก,เ), which
+    // only fixes leading vowels' DISPLAY position, not their rank among vowels.
+    private static final int FOLLOWING_VOWEL_BASE = 0x020000;
+    private static final int LEADING_VOWEL_BASE = 0x030000;
     private static final int TONE_BASE = 0x040000;
     private static final int MARK_BASE = 0x050000;
     private static final int DIGIT_BASE = 0x060000;
