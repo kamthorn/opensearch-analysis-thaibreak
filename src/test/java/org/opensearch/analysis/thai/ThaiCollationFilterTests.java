@@ -157,6 +157,18 @@ public class ThaiCollationFilterTests extends BaseTokenStreamTestCase {
         assertEquals(words, sortedWords);
     }
 
+    public void testToneMarksAreSecondaryLevel() throws IOException {
+        ThaiCollationKey key = new ThaiCollationKey(Strength.TERTIARY, Decomposition.NONE);
+
+        // Tone marks must not outrank base letters of later positions:
+        // ห้าง (ห า ง) < แหลม (ห แ ล) because า ranks below แ, even though ้ alone would rank above.
+        assertTrue(getCollationKeyHex("ห้างสรรพสินค้า", key).compareTo(getCollationKeyHex("แหลมพรหมเทพ", key)) < 0);
+        // Same base letters: unmarked sorts before marked, tones by rank.
+        assertTrue(getCollationKeyHex("ไก", key).compareTo(getCollationKeyHex("ไก่", key)) < 0);
+        // A tone difference in an early position loses to a base-letter difference later.
+        assertTrue(getCollationKeyHex("เก่ก", key).compareTo(getCollationKeyHex("เกข", key)) < 0);
+    }
+
     public void testDecompositionNormalizesSaraAm() {
         ThaiCollationKey none = new ThaiCollationKey(Strength.TERTIARY, Decomposition.NONE);
         ThaiCollationKey canonical = new ThaiCollationKey(Strength.TERTIARY, Decomposition.CANONICAL);
