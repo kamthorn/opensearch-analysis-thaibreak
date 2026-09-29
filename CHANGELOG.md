@@ -9,6 +9,12 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ### 🐛 Bug Fixes
 
+- **`thaibreak_collation` compared tone marks at the same level as base letters**, so a tone
+  mark could outrank a later base letter: `ห้างสรรพสินค้า…` sorted after `แหลมพรหมเทพ`
+  (`ห ้ า` vs `ห แ`, the tone `้` beat `แ`). Tone marks and diacritics are now a second-level
+  key appended after all base letters, so they only break ties between otherwise-identical
+  words. The 48-place demo list now matches glibc `th_TH` and ICU exactly. Existing indices
+  using `thaibreak_collation` must be reindexed.
 - **`thaibreak_collation` ranked leading vowels before following vowels** (e.g. `เก` before
   `กะ`) among words sharing the same initial consonant — the opposite of the Royal Institute
   dictionary convention, where all ten following-vowel forms (`ะ ั า ำ ิ ี ึ ื ุ ู`) are
