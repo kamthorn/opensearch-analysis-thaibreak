@@ -5,30 +5,6 @@ All notable changes to `opensearch-analysis-thaibreak` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).  
 Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18.0).
 
-## [Unreleased]
-
-### 🚀 Enhancements
-
-- **10,077 Thai given names merged into the bundled dictionary** (51,840 words total, up
-  from 41,763, at weight `1.20`): fixes given names composed of two dictionary morphemes
-  wrongly splitting (`สมศักดิ์` → `สม|ศักดิ์`, `ณัฐพล` → `ณัฐ|พล`, `สมชัย` → `สม|ชัย`, ...) — a
-  single dictionary word always beats a 2-word decomposition once the whole name is itself
-  listed. Sourced from PyThaiNLP's `person_names_female_th.txt`/`person_names_male_th.txt`
-  (Apache-2.0), selected with `scripts/select-names.py`: a name is excluded if it also occurs
-  as an ordinary two-word phrase outside a person-name span in the LST20 gold corpus (e.g.
-  `โชคดี` "lucky") so it keeps splitting normally in ordinary text. LST20 is used only to
-  select which words to add — no LST20 text is included in the dictionary. Validated on the
-  LST20 **test** split (held out from selection): boundary-level F1 94.03% → 94.21% (net +814
-  correct boundaries across 483 documents). Rebuilt `words.dawg` (51,840 words, 45,696
-  states, 392 KB) from the merged `words.txt`.
-  - Side effect on `thaibreak_person`: since these names are now whole dictionary words,
-    Udom83 soundex/tone-stripping (which is scoped to whole tokens, not decompound
-    fragments — see v1.3.1) is now computed once per full name instead of per first-syllable
-    fragment, giving a *more specific* homophone signature (unique to that exact name pair,
-    e.g. `ณัฐพล`/`นัฐพล`) rather than one shared by every name starting with the same
-    syllable. Existing indices using `thaibreak_person` on affected names should be reindexed
-    to pick up the new signatures.
-
 ## [v1.3.1] — 2026-09-28
 
 ### 🐛 Bug Fixes
