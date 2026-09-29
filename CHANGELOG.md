@@ -7,6 +7,13 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ## [Unreleased]
 
+### ✨ Dictionary
+
+- **+18 words from `thai-break-dict-extra`** (51,858 total): ศัพท์ AI/คอมพิวเตอร์ and loanwords
+  (`โครงข่ายประสาทเทียม`, `การเรียนรู้เชิงลึก`, `สมาร์ทวอทช์`, `ไฮยาลูรอนิก`, …), two long
+  organisation names, and dotless abbreviations (`สวทช`, `รพสต`, …), using dict-extra's tier
+  weights. These were previously supplied through the demo's `user_dictionary_rules`.
+
 ### 🐛 Bug Fixes
 
 - **`thaibreak_collation` compared tone marks at the same level as base letters**, so a tone
