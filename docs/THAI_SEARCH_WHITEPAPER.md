@@ -80,7 +80,7 @@ flowchart TD
 | **Number Converter** | `thaibreak_number` | Bridges spoken Thai written numbers and digits | `ห้าหมื่น` $\rightarrow$ `50000`, `๑๒๕๐` $\rightarrow$ `1250` |
 | **Acronym Expansion** | `thai_acronym` | Expands Thai abbreviations and initialisms to their full forms | `กทม` $\rightarrow$ `กทม`, `กรุงเทพมหานคร` |
 | **RTGS Romanization** | `thai_romanization` | Produces Royal Thai General System transcription for karaoke/Latin queries | `กรุงเทพ` $\rightarrow$ `krungthep` |
-| **Royal Institute Collation** | `thai_collation` | ICU-free alphabetical sort keys, deterministic on every JDK and locale | `เกาะ` $\rightarrow$ `010000020000...` (leading vowel reordered after `ก`) |
+| **Royal Institute Collation** | `thai_collation` | ICU-free alphabetical sort keys, deterministic on every JDK and locale | `เกาะ` $\rightarrow$ `010000030000...` (leading vowel reordered after `ก`, ranked after following vowels) |
 | **Person Name Analyzer** | `thaibreak_person` | Single preset for Thai names/surnames: mixed decompounding + tone + Soundex synonyms | `ณัฐพล` / `นัฐพล` match via shared Udom83 signature |
 
 ---

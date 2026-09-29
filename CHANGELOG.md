@@ -7,6 +7,21 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+
+- **`thaibreak_collation` ranked leading vowels before following vowels** (e.g. `เก` before
+  `กะ`) among words sharing the same initial consonant — the opposite of the Royal Institute
+  dictionary convention, where all ten following-vowel forms (`ะ ั า ำ ิ ี ึ ื ุ ู`) are
+  grouped before any of the five leading-vowel forms (`เ แ โ ใ ไ`). Confirmed against a live
+  `icu_collation_keyword` (th) field: ICU gives `กก กะ กัน กา กำ กิ กี กึ กื กุ กู เก แก โก ใก ไก`;
+  `thaibreak_collation` gave `กก เก แก โก ใก ไก กะ กัน กา กำ กิ กี กึ กื กุ กู` — now matches ICU
+  exactly. Root cause: `ThaiCollationKey`'s `LEADING_VOWEL_BASE` (0x020000) was lower than
+  `FOLLOWING_VOWEL_BASE` (0x030000); swapped. This is a distinct axis from the existing
+  leading-vowel-to-consonant *reordering* (`เก` emitted as `ก,เ` so it sorts near `ก`-words
+  instead of after `ฮ`), which was already correct and is unaffected — the documented example
+  `กบ < เกาะ < ไก่ < ขวด < ฮูก` still holds. Existing sort keys/indices using
+  `thaibreak_collation` should be reindexed to pick up the corrected order.
+
 ### 🚀 Enhancements
 
 - **10,077 Thai given names merged into the bundled dictionary** (51,840 words total, up
