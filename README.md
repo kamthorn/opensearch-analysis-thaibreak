@@ -47,6 +47,7 @@ Available Docker tags:
 - `ghcr.io/kamthorn/opensearch-thaibreak:2.18.0`
 - `ghcr.io/kamthorn/opensearch-thaibreak:2.19.0`
 - `ghcr.io/kamthorn/opensearch-thaibreak:3.8.0`
+- `ghcr.io/kamthorn/opensearch-thaibreak:3.9.0`
 
 ### Or Run with Docker Compose
 
@@ -54,6 +55,14 @@ Available Docker tags:
 docker compose up -d
 ./docker/test-search.sh
 ```
+
+### Compatibility
+
+| OpenSearch | Status |
+| :--- | :--- |
+| 2.15.0, 2.17.1, 2.18.0, 2.19.0, 3.8.0, 3.9.0 | Tested: each release ZIP is installed into the matching official image and `_analyze` is verified (`scripts/smoke-test.sh`, run in CI) |
+| 2.11.x – 2.13.x | **Not supported**: the plugin requires **Java 21**, and these versions run on JDK 17, so installation fails with `analysis-thaibreak requires Java 21` |
+| Other releases | Not tested. A plugin ZIP only installs on the exact OpenSearch version in its file name, so build one with `-Dopensearch.version=<version>` if you need it |
 
 ### Install into existing OpenSearch
 

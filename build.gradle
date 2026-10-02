@@ -132,7 +132,7 @@ task benchmark(type: JavaExec) {
     mainClass = "org.opensearch.analysis.thai.benchmark.ThaiTokenizerBenchmark"
 }
 
-def targetOpenSearchVersions = ['2.11.1', '2.15.0', '2.17.1', '2.18.0', '2.19.0', '3.8.0']
+def targetOpenSearchVersions = ['2.15.0', '2.17.1', '2.18.0', '2.19.0', '3.8.0', '3.9.0']
 
 task packageAllDistributions {
     description = "Packages plugin ZIPs for all targeted OpenSearch versions"

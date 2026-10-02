@@ -160,12 +160,12 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ### 📦 Distribution & Infrastructure
 
-- Multi-version release packaging: pre-built ZIP artifacts for OpenSearch `2.11.1`, `2.15.0`, `2.17.1`, `2.18.0`, `2.19.0`, and `3.8.0`.
+- Multi-version release packaging: pre-built ZIP artifacts for OpenSearch `2.15.0`, `2.17.1`, `2.18.0`, `2.19.0`, `3.8.0`, and `3.9.0`.
 - SHA-512 checksums alongside each artifact.
 - GitHub Actions automated Release workflow (`release.yml`): triggers on `v*` tags, runs all tests, packages all ZIPs, and publishes the GitHub Release automatically.
 - GitHub Actions multi-version Matrix Build (`matrix-build.yml`).
 - One-Click Docker Compose evaluation environment (`docker-compose.yml` + `docker/Dockerfile` + `docker/test-search.sh`).
-- Automated Docker image publishing to GitHub Container Registry (GHCR): `ghcr.io/kamthorn/opensearch-thaibreak` for OpenSearch 2.18.0, 2.19.0, and 3.8.0.
+- Automated Docker image publishing to GitHub Container Registry (GHCR): `ghcr.io/kamthorn/opensearch-thaibreak` for OpenSearch 2.18.0, 2.19.0, 3.8.0, and 3.9.0.
 - Technical Architecture Whitepaper (`docs/THAI_SEARCH_WHITEPAPER.md`).
 
 ### 🔒 Quality & Safety
@@ -179,9 +179,9 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 | OpenSearch Version | Artifact |
 | :--- | :--- |
-| 2.11.1 | `analysis-thaibreak-2.11.1.0.zip` |
 | 2.15.0 | `analysis-thaibreak-2.15.0.0.zip` |
 | 2.17.1 | `analysis-thaibreak-2.17.1.0.zip` |
 | 2.18.0 | `analysis-thaibreak-2.18.0.0.zip` |
 | 2.19.0 | `analysis-thaibreak-2.19.0.0.zip` |
 | 3.8.0  | `analysis-thaibreak-3.8.0.0.zip`  |
+| 3.9.0  | `analysis-thaibreak-3.9.0.0.zip`  |
