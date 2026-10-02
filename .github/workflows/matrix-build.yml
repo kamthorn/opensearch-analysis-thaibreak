@@ -39,3 +39,21 @@ jobs:
       with:
         name: analysis-thaibreak-all-versions
         path: build/distributions/*.zip
+
+  smoke-test:
+    name: Smoke test on OpenSearch ${{ matrix.opensearch_version }}
+    needs: package-all
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep in sync with targetOpenSearchVersions in build.gradle
+        opensearch_version: ['2.15.0', '2.17.1', '2.18.0', '2.19.0', '3.8.0', '3.9.0']
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/download-artifact@v4
+      with:
+        name: analysis-thaibreak-all-versions
+        path: dist
+    - name: Install the plugin and run _analyze
+      run: scripts/smoke-test.sh ${{ matrix.opensearch_version }} dist

@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        opensearch_version: ['2.18.0', '2.19.0', '3.8.0']
+        opensearch_version: ['2.18.0', '2.19.0', '3.8.0', '3.9.0']
 
     steps:
       - name: Checkout repository
