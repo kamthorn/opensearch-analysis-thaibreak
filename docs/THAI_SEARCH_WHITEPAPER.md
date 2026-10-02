@@ -115,7 +115,7 @@ graph TD
 
     subgraph OpenSearch Ecosystem
         Plugin["opensearch-analysis-thaibreak (Full Feature Flagship)"]
-        Matrix["GitHub Actions Matrix: 2.11.1, 2.15.0, 2.17.1, 2.18.0, 2.19.0, 3.8.0"]
+        Matrix["GitHub Actions Matrix: 2.15.0, 2.17.1, 2.18.0, 2.19.0, 3.8.0, 3.9.0"]
         DockerImg["One-Click Evaluation Docker Image"]
     end
     
