@@ -35,6 +35,7 @@ import java.nio.file.Path;
  *       a custom word list in TSV format.</li>
  *   <li>{@code decompound_mode} — compound word decompounding mode:
  *       {@code none}, {@code discard}, or {@code mixed}. Default: {@code none}.</li>
+ *   <li>{@code normalization} — apply {@link ThaiNormalizationFilter}. Default: {@code true}.</li>
  * </ul>
  */
 public final class ThaiBreakAnalyzerProvider implements AnalyzerProvider<ThaiBreakAnalyzer> {
@@ -49,7 +50,8 @@ public final class ThaiBreakAnalyzerProvider implements AnalyzerProvider<ThaiBre
         this.name = name;
         ThaiTrie trie = ThaiBreakTokenizerFactory.loadTrie(env, settings);
         DecompoundMode mode = DecompoundMode.fromString(settings.get("decompound_mode", "none"));
-        this.analyzer = new ThaiBreakAnalyzer(trie, mode);
+        boolean normalization = settings.getAsBoolean("normalization", true);
+        this.analyzer = new ThaiBreakAnalyzer(trie, null, mode, normalization);
     }
 
     @Override

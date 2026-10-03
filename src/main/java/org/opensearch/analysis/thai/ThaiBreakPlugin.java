@@ -113,6 +113,8 @@ public final class ThaiBreakPlugin extends Plugin implements AnalysisPlugin {
         filters.put("thai_collation", ThaiCollationFilterFactory::new);
         filters.put("thaibreak_romanization", ThaiRomanizationFilterFactory::new);
         filters.put("thai_romanization", ThaiRomanizationFilterFactory::new);
+        // No thai_* alias: OpenSearch core may add its own thai_normalization (Lucene 10.6).
+        filters.put("thaibreak_normalization", ThaiNormalizationFilterFactory::new);
         return Collections.unmodifiableMap(filters);
     }
 }
