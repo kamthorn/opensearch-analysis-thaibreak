@@ -9,7 +9,7 @@ OpenSearch Analysis Plugin for the Thai language — powered by the **Viterbi + 
 
 - **Deterministic** segmentation — no JRE locale/platform dependency (unlike the built-in `ThaiTokenizer` which relies on `java.text.BreakIterator`)
 - **Frequency-weighted** Viterbi shortest-path algorithm with TCC (Thai Character Cluster) constraints
-- **51,858-word** bundled dictionary with category weights (Apache-2.0)
+- **51,347-word** bundled dictionary with category weights (Apache-2.0)
 - **User dictionary** support — add domain-specific terms (medical, legal, brand names, etc.)
 - Mixed Thai/Latin/numeric content handled correctly
 - OOV (out-of-vocabulary) fallback: unknown words are preserved as single tokens
@@ -22,7 +22,7 @@ OpenSearch Analysis Plugin for the Thai language — powered by the **Viterbi + 
 | Cross-JVM deterministic | ❌ | ✅ |
 | User dictionary | ❌ | ✅ |
 | Compound words | Varies by JRE | Frequency-weighted |
-| Dictionary size | Varies by JRE | 51,858 words |
+| Dictionary size | Varies by JRE | 51,347 words |
 
 ## Installation & Docker
 
@@ -69,14 +69,23 @@ docker compose up -d
 From GitHub Releases (Direct HTTPS URL — no compilation needed):
 
 ```bash
+# OpenSearch 3.9.0
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.4.0/analysis-thaibreak-3.9.0.0.zip
+
+# OpenSearch 3.8.0
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.4.0/analysis-thaibreak-3.8.0.0.zip
+
+# OpenSearch 2.19.0
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.4.0/analysis-thaibreak-2.19.0.0.zip
+
 # OpenSearch 2.18.0
-bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.3.1/analysis-thaibreak-2.18.0.0.zip
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.4.0/analysis-thaibreak-2.18.0.0.zip
 
 # OpenSearch 2.17.1
-bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.3.1/analysis-thaibreak-2.17.1.0.zip
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.4.0/analysis-thaibreak-2.17.1.0.zip
 
 # OpenSearch 2.15.0
-bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.3.1/analysis-thaibreak-2.15.0.0.zip
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.4.0/analysis-thaibreak-2.15.0.0.zip
 ```
 
 Or from local ZIP:

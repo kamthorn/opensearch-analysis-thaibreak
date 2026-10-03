@@ -5,11 +5,29 @@ All notable changes to `opensearch-analysis-thaibreak` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).  
 Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18.0).
 
-## [Unreleased]
+## [v1.4.0] — 2026-10-03
+
+> **Reindex required** for indices using the `thaibreak` or `thaibreak_person` analyzers
+> (they now normalize Thai spelling, so indexed terms change) and for fields using
+> `thaibreak_collation` (sort keys changed). Queries analyzed with the new version will not
+> match terms indexed by the old one in the affected cases.
+
+### 🆕 OpenSearch versions
+
+- **Adds OpenSearch 3.9.0**; ZIPs are built for 2.15.0, 2.17.1, 2.18.0, 2.19.0, 3.8.0 and
+  3.9.0, and every ZIP is installed into the matching official image and checked with
+  `_analyze` (`scripts/smoke-test.sh`, run in CI). **Drops 2.11.1**: the plugin needs Java 21 and
+  that release runs on JDK 17, so it never installed.
 
 ### ✨ Dictionary
 
-- **+18 words from `thai-break-dict-extra`** (51,858 total): ศัพท์ AI/คอมพิวเตอร์ and loanwords
+- **−511 entries, one fixed** (51,347 words total, mirroring the cleanup in `thai-break` and
+  `thai-break-dict-extra`): 505 entries spelled with a decomposed Sara Am (`ํ` + `า`, e.g.
+  `กระทํา`) that already had a `ำ` twin and could never match, plus `จััมป์`, `ล็็อก`, `ุโพสต์`,
+  `อนุสรณ์์`, `การเเสดง` and the misspelled name `ณํฐกาณ`. `เมทาเเองโคลีไอต์` and `จักรพันธ์ุ` are
+  corrected. Segmentation output is unchanged for the removed entries because their canonical
+  forms were already present. Elongations such as `ค่าา` are kept on purpose.
+- **+18 words from `thai-break-dict-extra`** (51,858 total at the time): ศัพท์ AI/คอมพิวเตอร์ and loanwords
   (`โครงข่ายประสาทเทียม`, `การเรียนรู้เชิงลึก`, `สมาร์ทวอทช์`, `ไฮยาลูรอนิก`, …), two long
   organisation names, and dotless abbreviations (`สวทช`, `รพสต`, …), using dict-extra's tier
   weights. These were previously supplied through the demo's `user_dictionary_rules`.
@@ -28,7 +46,6 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
   `user_dictionary_rules`) are now normalized the same way when loaded.
 - **A tone mark typed after Sara Am (`นำ้`) was not matched as `น้ำ`**, so `นำ้ตาล` was segmented
   as `นำ้|ตาล`. The tokenizer now also matches `ำ` + tone and `ํ` + `า` + tone as tone + `ำ`.
-
 - **`thaibreak_collation` compared tone marks at the same level as base letters**, so a tone
   mark could outrank a later base letter: `ห้างสรรพสินค้า…` sorted after `แหลมพรหมเทพ`
   (`ห ้ า` vs `ห แ`, the tone `้` beat `แ`). Tone marks and diacritics are now a second-level
