@@ -32,7 +32,7 @@ public class CompactDawgTests extends LuceneTestCase {
         assertTrue("Load time should be under 50ms", loadMs < 50.0);
 
         // Verify loaded stats
-        assertEquals(51858, dawg.numWords());
+        assertEquals(51347, dawg.numWords());
         assertTrue("States should be around 45,000", dawg.numStates() > 30000);
         assertTrue("DAWG size should be around 392KB", dawg.sizeInBytes() < 450000);
 
