@@ -26,6 +26,8 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 - **User dictionary words containing `ํา`, `ํ`+tone+`า` or `เเ` never matched**, because text is
   matched with those recomposed. User dictionary entries (`user_dictionary`,
   `user_dictionary_rules`) are now normalized the same way when loaded.
+- **A tone mark typed after Sara Am (`นำ้`) was not matched as `น้ำ`**, so `นำ้ตาล` was segmented
+  as `นำ้|ตาล`. The tokenizer now also matches `ำ` + tone and `ํ` + `า` + tone as tone + `ำ`.
 
 - **`thaibreak_collation` compared tone marks at the same level as base letters**, so a tone
   mark could outrank a later base letter: `ห้างสรรพสินค้า…` sorted after `แหลมพรหมเทพ`
