@@ -97,6 +97,26 @@ public class ThaiViterbiTokenizerTests extends LuceneTestCase {
         assertEquals(List.of("เเมว"), tokens);
     }
 
+    public void testNormalization_SaraAmForms() {
+        // All spellings of น้ำ match the dictionary; tokens keep the original characters
+        for (String water : new String[]{
+                "น้ำ",        // canonical น้ำ
+                "นํ้า",  // ํ + tone + า
+                "น้ํา",  // tone + ํ + า
+                "นำ้",        // tone typed after ำ
+                "นํา้"}) { // ํ + า + tone
+            String sugar = water + "ตาล";
+            assertEquals(sugar, List.of(sugar, "ทราย"), tok().tokenize(sugar + "ทราย", false));
+        }
+    }
+
+    public void testNormalizeForMatching() {
+        assertEquals("น้ำตาล", ThaiViterbiTokenizer.normalizeForMatching("นำ้ตาล"));
+        assertEquals("น้ำตาล", ThaiViterbiTokenizer.normalizeForMatching("นํา้ตาล"));
+        String canonical = "น้ำตาล";
+        assertSame(canonical, ThaiViterbiTokenizer.normalizeForMatching(canonical));
+    }
+
     public void testEnglishPassthrough() {
         List<String> tokens = tok().tokenize("OpenSearch", false);
         assertEquals(List.of("OpenSearch"), tokens);

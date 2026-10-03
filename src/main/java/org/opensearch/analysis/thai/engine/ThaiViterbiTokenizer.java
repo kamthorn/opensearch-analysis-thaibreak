@@ -164,7 +164,7 @@ public final class ThaiViterbiTokenizer {
         return Arrays.equals(norm.runes, runes) ? word : new String(norm.runes, 0, norm.runes.length);
     }
 
-    /** Normalization: เ+เ → แ, ํ+า → ำ, ํ+tone+า → tone+ำ */
+    /** Normalization: เ+เ → แ, ํ+า → ำ, ํ+tone+า → tone+ำ, ำ+tone → tone+ำ, ํ+า+tone → tone+ำ */
     private static NormResult normalizeForMatching(int[] runes) {
         int n = runes.length;
         int[] norm = new int[n];
@@ -177,9 +177,17 @@ public final class ThaiViterbiTokenizer {
 
             if (r == 'เ' && next == 'เ') {
                 norm[ni] = 'แ'; orig[ni] = i; ni++; i++;
+            } else if (r == 'ำ' && isToneMark(next)) {
+                norm[ni] = next; orig[ni] = i; ni++;
+                norm[ni] = 'ำ'; orig[ni] = i; ni++;
+                i += 1;
+            } else if (r == 0x0E4D && next == 'า' && isToneMark(next2)) {
+                norm[ni] = next2; orig[ni] = i; ni++;
+                norm[ni] = 'ำ'; orig[ni] = i; ni++;
+                i += 2;
             } else if (r == 0x0E4D && next == 'า') {
                 norm[ni] = 'ำ'; orig[ni] = i; ni++; i++;
-            } else if (r == 0x0E4D && next >= '่' && next <= '๋' && next2 == 'า') {
+            } else if (r == 0x0E4D && isToneMark(next) && next2 == 'า') {
                 norm[ni] = next; orig[ni] = i; ni++;
                 norm[ni] = 'ำ'; orig[ni] = i; ni++;
                 i += 2;
@@ -189,6 +197,10 @@ public final class ThaiViterbiTokenizer {
         }
         orig[ni] = n;
         return new NormResult(Arrays.copyOf(norm, ni), Arrays.copyOf(orig, ni + 1));
+    }
+
+    private static boolean isToneMark(int r) {
+        return r >= '่' && r <= '๋';
     }
 
     private static final class NormResult {

@@ -58,6 +58,8 @@ public class ThaiNormalizationFilterTests extends BaseTokenStreamTestCase {
             assertAnalyzesTo(analyzer, FORM_B, new String[]{"น้ำตาล", "หวาน"}, new int[]{0, 7}, new int[]{7, 11});
             assertAnalyzesTo(analyzer, "น้ําตาลหวาน", new String[]{"น้ำตาล", "หวาน"});
             assertAnalyzesTo(analyzer, "กําลังทํางาน", new String[]{"กำลัง", "ทำงาน"});
+            // tone mark typed after Sara Am
+            assertAnalyzesTo(analyzer, "นำ้ตาลหวาน", new String[]{"น้ำตาล", "หวาน"});
             assertEquals(new BytesRef("น้ำตาล"), analyzer.normalize("f", "นํ้าตาล"));
         }
     }
