@@ -28,6 +28,7 @@ import org.opensearch.index.analysis.AnalyzerScope;
  *   <li>{@code decompound_mode} — compound decompounding mode: {@code none}, {@code discard}, or {@code mixed} (default: {@code mixed}).</li>
  *   <li>{@code tone} — whether to include tone and diacritic stripping (default: {@code true}).</li>
  *   <li>{@code soundex} — whether to include Udom83 phonetic soundex matching (default: {@code true}).</li>
+ *   <li>{@code normalization} — apply {@link ThaiNormalizationFilter} (default: {@code true}).</li>
  *   <li>{@code user_dictionary} — path to custom dictionary file.</li>
  *   <li>{@code user_dictionary_rules} — inline custom dictionary rules.</li>
  * </ul>
@@ -54,7 +55,8 @@ public final class ThaiPersonAnalyzerProvider implements AnalyzerProvider<ThaiPe
         DecompoundMode mode = DecompoundMode.fromString(settings.get("decompound_mode", "mixed"));
         boolean tone = settings.getAsBoolean("tone", true);
         boolean soundex = settings.getAsBoolean("soundex", true);
-        this.analyzer = new ThaiPersonAnalyzer(trie, mode, tone, soundex);
+        boolean normalization = settings.getAsBoolean("normalization", true);
+        this.analyzer = new ThaiPersonAnalyzer(trie, mode, tone, soundex, normalization);
     }
 
     @Override

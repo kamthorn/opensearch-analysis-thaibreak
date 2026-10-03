@@ -106,6 +106,11 @@ PUT /my-index
 }
 ```
 
+The `thaibreak` analyzer runs `thaibreak_normalization` before `lowercase`, so spelling
+variants such as `นํ้าตาล` and `น้ำตาล` index to the same term. Set `"normalization": false`
+to turn it off. A custom analyzer built on the `thaibreak` tokenizer does not normalize unless
+you add the filter yourself (see below).
+
 ### Thai Person & Entity Name Analyzer (`thaibreak_person` / `thai_person`)
 
 A pre-configured production analyzer designed specifically for searching **Thai person names, surnames, and entity titles**.
@@ -145,6 +150,7 @@ PUT /thai-person-index
 - `decompound_mode`: `mixed` (default), `none`, or `discard`.
 - `tone`: `true` (default; enables tone mark and thanthakhat stripping) or `false`.
 - `soundex`: `true` (default; enables Udom83 phonetic matching) or `false`.
+- `normalization`: `true` (default; applies `thaibreak_normalization`) or `false`.
 - `user_dictionary`: optional path to domain-specific names list.
 - `user_dictionary_rules`: optional inline list of custom names.
 
@@ -265,6 +271,41 @@ PUT /thai-phonetic-index
   }
 }
 ```
+
+### Thai Normalization Filter (`thaibreak_normalization`)
+
+Rewrites Thai spelling variants to one canonical form, so that a query matches documents
+whichever way the word was typed. The tokenizer keeps the original characters, so without this
+filter `นํ้าตาล` (Nikhahit + tone mark + Sara Aa, common in legacy TIS-620 text) and `น้ำตาล`
+are different terms. Same rules as Lucene's `ThaiNormalizer` (Lucene 10.6):
+- Sara Am: `ํา` &rarr; `ำ`, `นํ้า` / `น้ํา` &rarr; `น้ำ`, tone mark after Sara Am `นำ้` &rarr; `น้ำ`
+- `เเ` (two Sara E) &rarr; `แ`
+- Tone mark typed before an above/below vowel &rarr; vowel first (`ท่ี` &rarr; `ที่`)
+- Repeated vowels and marks collapsed (`น้้ำ` &rarr; `น้ำ`)
+- Lakkhangyao `ๅ` &rarr; `า` (except in `ฤๅ`, `ฦๅ`), zero-width spaces removed
+
+No parameters. It also works in a custom `normalizer` for `keyword` fields. Turning it on for an
+existing index changes the indexed terms, so reindex.
+
+```json
+PUT /thai-index
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "thai_custom": {
+          "type": "custom",
+          "tokenizer": "thaibreak",
+          "filter": ["thaibreak_normalization", "lowercase"]
+        }
+      }
+    }
+  }
+}
+```
+
+User dictionary words are stored the way the tokenizer matches text, so an entry typed as
+`นํ้าตาลทราย` or `เเอป...` still matches `น้ำตาลทราย` / `แอป...` in the text.
 
 ### Thai Tone & Diacritic Stripping Filter (`thaibreak_tone`)
 

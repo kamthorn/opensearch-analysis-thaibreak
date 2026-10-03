@@ -27,6 +27,7 @@ import org.opensearch.analysis.thai.engine.ThaiTrie;
  * <p>Pipeline:
  * <ol>
  *   <li>{@link ThaiBreakTokenizer} — Viterbi word segmentation + optional decompounding</li>
+ *   <li>{@link ThaiNormalizationFilter} — canonical Thai spelling (on by default)</li>
  *   <li>{@link LowerCaseFilter} — lowercase Latin letters</li>
  *   <li>{@link StopFilter} — optional stop words</li>
  * </ol>
@@ -36,6 +37,7 @@ public final class ThaiBreakAnalyzer extends Analyzer {
     private final ThaiTrie trie;
     private final CharArraySet stopWords;
     private final DecompoundMode mode;
+    private final boolean normalization;
 
     /** Creates an analyzer with the provided dictionary and no stop words. */
     public ThaiBreakAnalyzer(ThaiTrie trie) {
@@ -49,7 +51,18 @@ public final class ThaiBreakAnalyzer extends Analyzer {
 
     /** Creates an analyzer with a custom stop-word set and decompound mode. */
     public ThaiBreakAnalyzer(ThaiTrie trie, CharArraySet stopWords, DecompoundMode mode) {
+        this(trie, stopWords, mode, true);
+    }
+
+    /**
+     * Creates an analyzer with a custom stop-word set and decompound mode.
+     *
+     * @param normalization whether to apply {@link ThaiNormalizationFilter}
+     */
+    public ThaiBreakAnalyzer(ThaiTrie trie, CharArraySet stopWords, DecompoundMode mode,
+                             boolean normalization) {
         this.trie = trie;
+        this.normalization = normalization;
         this.stopWords = stopWords == null ? CharArraySet.EMPTY_SET : stopWords;
         this.mode = mode == null ? DecompoundMode.NONE : mode;
     }
@@ -57,7 +70,11 @@ public final class ThaiBreakAnalyzer extends Analyzer {
     @Override
     protected TokenStreamComponents createComponents(String fieldName) {
         Tokenizer tokenizer = new ThaiBreakTokenizer(trie, mode);
-        TokenStream stream = new LowerCaseFilter(tokenizer);
+        TokenStream stream = tokenizer;
+        if (normalization) {
+            stream = new ThaiNormalizationFilter(stream);
+        }
+        stream = new LowerCaseFilter(stream);
         if (!stopWords.isEmpty()) {
             stream = new StopFilter(stream, stopWords);
         }
@@ -66,6 +83,7 @@ public final class ThaiBreakAnalyzer extends Analyzer {
 
     @Override
     protected TokenStream normalize(String fieldName, TokenStream in) {
-        return new LowerCaseFilter(in);
+        TokenStream stream = normalization ? new ThaiNormalizationFilter(in) : in;
+        return new LowerCaseFilter(stream);
     }
 }

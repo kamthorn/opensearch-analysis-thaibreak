@@ -150,6 +150,20 @@ public final class ThaiViterbiTokenizer {
     // Internal helpers
     // -----------------------------------------------------------------------
 
+    /**
+     * Applies the normalization used for dictionary matching to a single word.
+     * Dictionary words must go through this too, or a word stored as {@code นํ้าตาล}
+     * could never match: the input text is matched as {@code น้ำตาล}.
+     *
+     * @param word word to normalize
+     * @return the word as the tokenizer matches it
+     */
+    public static String normalizeForMatching(String word) {
+        int[] runes = word.codePoints().toArray();
+        NormResult norm = normalizeForMatching(runes);
+        return Arrays.equals(norm.runes, runes) ? word : new String(norm.runes, 0, norm.runes.length);
+    }
+
     /** Normalization: เ+เ → แ, ํ+า → ำ, ํ+tone+า → tone+ำ */
     private static NormResult normalizeForMatching(int[] runes) {
         int n = runes.length;
