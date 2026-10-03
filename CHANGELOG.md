@@ -16,6 +16,17 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ### 🐛 Bug Fixes
 
+- **Sara Am typed as `ํา` or `นํ้า` indexed as a different term from `ำ` / `น้ำ`.** The tokenizer
+  already segmented these forms correctly (`นํ้าตาล|หวาน`), but it emits the original characters,
+  so a query for `น้ำตาล` missed documents containing `นํ้าตาล`. New `thaibreak_normalization`
+  token filter (same rules as Lucene 10.6 `ThaiNormalizer`: Sara Am forms, `เเ`, tone/vowel
+  order, repeated marks, Lakkhangyao, zero-width chars). The `thaibreak` and `thaibreak_person`
+  analyzers now apply it by default (`normalization: false` turns it off). Existing indices using
+  these analyzers should be reindexed.
+- **User dictionary words containing `ํา`, `ํ`+tone+`า` or `เเ` never matched**, because text is
+  matched with those recomposed. User dictionary entries (`user_dictionary`,
+  `user_dictionary_rules`) are now normalized the same way when loaded.
+
 - **`thaibreak_collation` compared tone marks at the same level as base letters**, so a tone
   mark could outrank a later base letter: `ห้างสรรพสินค้า…` sorted after `แหลมพรหมเทพ`
   (`ห ้ า` vs `ห แ`, the tone `้` beat `แ`). Tone marks and diacritics are now a second-level

@@ -26,6 +26,7 @@ import org.opensearch.analysis.thai.engine.ThaiTrie;
  * <ol>
  *   <li>{@link ThaiBreakTokenizer} — with {@link DecompoundMode#MIXED} as default to preserve
  *       full compound names while emitting sub-word tokens as a token graph.</li>
+ *   <li>{@link ThaiNormalizationFilter} — canonical Thai spelling (on by default).</li>
  *   <li>{@link LowerCaseFilter} — normalizes mixed Latin/English names.</li>
  *   <li>{@link ThaiToneFilter} — strips tone marks and diacritics as synonyms for loose matching.</li>
  *   <li>{@link ThaiSoundexTokenFilter} — generates Udom83 phonetic signatures as synonyms for homophone matching.</li>
@@ -37,6 +38,7 @@ public final class ThaiPersonAnalyzer extends Analyzer {
     private final DecompoundMode mode;
     private final boolean tone;
     private final boolean soundex;
+    private final boolean normalization;
 
     /**
      * Constructs a {@link ThaiPersonAnalyzer} with default settings (mixed decompounding, tone and soundex enabled).
@@ -56,7 +58,22 @@ public final class ThaiPersonAnalyzer extends Analyzer {
      * @param soundex whether to include Udom83 phonetic soundex matching
      */
     public ThaiPersonAnalyzer(ThaiTrie trie, DecompoundMode mode, boolean tone, boolean soundex) {
+        this(trie, mode, tone, soundex, true);
+    }
+
+    /**
+     * Constructs a {@link ThaiPersonAnalyzer} with custom settings.
+     *
+     * @param trie          Thai dictionary trie
+     * @param mode          compound decompounding mode (default: {@link DecompoundMode#MIXED})
+     * @param tone          whether to include tone and diacritic stripping
+     * @param soundex       whether to include Udom83 phonetic soundex matching
+     * @param normalization whether to apply {@link ThaiNormalizationFilter}
+     */
+    public ThaiPersonAnalyzer(ThaiTrie trie, DecompoundMode mode, boolean tone, boolean soundex,
+                              boolean normalization) {
         this.trie = trie;
+        this.normalization = normalization;
         this.mode = mode != null ? mode : DecompoundMode.MIXED;
         this.tone = tone;
         this.soundex = soundex;
@@ -65,7 +82,11 @@ public final class ThaiPersonAnalyzer extends Analyzer {
     @Override
     protected TokenStreamComponents createComponents(String fieldName) {
         Tokenizer tokenizer = new ThaiBreakTokenizer(trie, mode);
-        TokenStream stream = new LowerCaseFilter(tokenizer);
+        TokenStream stream = tokenizer;
+        if (normalization) {
+            stream = new ThaiNormalizationFilter(stream);
+        }
+        stream = new LowerCaseFilter(stream);
         if (tone) {
             stream = new ThaiToneFilter(stream, true, true, true);
         }
@@ -77,6 +98,7 @@ public final class ThaiPersonAnalyzer extends Analyzer {
 
     @Override
     protected TokenStream normalize(String fieldName, TokenStream in) {
-        return new LowerCaseFilter(in);
+        TokenStream stream = normalization ? new ThaiNormalizationFilter(in) : in;
+        return new LowerCaseFilter(stream);
     }
 }

@@ -27,6 +27,8 @@ import java.nio.charset.StandardCharsets;
  * this JAR (51,858 words with category weights, Apache-2.0, from the {@code thai-break}
  * and {@code thai-break-dict-extra} projects). User dictionaries follow the same
  * TSV format: one word per line, with an optional tab-separated weight.
+ * Words are stored as the tokenizer matches them
+ * ({@link ThaiViterbiTokenizer#normalizeForMatching(String)}), e.g. {@code นํ้า} as {@code น้ำ}.
  */
 public final class ThaiDictionaryLoader {
 
@@ -131,7 +133,7 @@ public final class ThaiDictionaryLoader {
                     if (w > 0) weight = w;
                 } catch (NumberFormatException ignored) { /* keep default */ }
             }
-            trie.add(word, weight);
+            trie.add(ThaiViterbiTokenizer.normalizeForMatching(word), weight);
         }
         return trie;
     }
@@ -162,7 +164,7 @@ public final class ThaiDictionaryLoader {
                     if (w > 0) weight = w;
                 } catch (NumberFormatException ignored) { /* keep default */ }
             }
-            trie.add(word, weight);
+            trie.add(ThaiViterbiTokenizer.normalizeForMatching(word), weight);
         }
         return trie;
     }

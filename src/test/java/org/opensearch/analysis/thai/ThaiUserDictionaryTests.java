@@ -99,4 +99,37 @@ public class ThaiUserDictionaryTests extends BaseTokenStreamTestCase {
         tok.setReader(new StringReader("ไปที่" + longName + "พรุ่งนี้"));
         assertTokenStreamContents(tok, new String[]{"ไป", "ที่", longName, "พรุ่งนี้"});
     }
+
+    public void testUserDictionaryWordWithDecomposedSaraAm() throws IOException {
+        // Text is matched with Sara Am recomposed, so a rule typed as นํ้า... must be too.
+        String typed = "นํ้าตาลมะพร้าวอินทรีย์"; // นํ้าตาลมะพร้าวอินทรีย์
+        String canonical = "น้ำตาลมะพร้าวอินทรีย์";
+        Settings settings = Settings.builder()
+            .putList("user_dictionary_rules", typed)
+            .build();
+
+        ThaiTrie trie = ThaiBreakTokenizerFactory.loadTrie(null, settings);
+        assertTrue(trie.contains(canonical));
+
+        Tokenizer tok = new ThaiBreakTokenizer(trie);
+        tok.setReader(new StringReader("ซื้อ" + canonical));
+        assertTokenStreamContents(tok, new String[]{"ซื้อ", canonical});
+
+        // The tokenizer keeps the original characters of the text
+        Tokenizer tok2 = new ThaiBreakTokenizer(trie);
+        tok2.setReader(new StringReader("ซื้อ" + typed));
+        assertTokenStreamContents(tok2, new String[]{"ซื้อ", typed});
+    }
+
+    public void testUserDictionaryFileWithDoubleSaraE() throws IOException {
+        Path dir = createTempDir();
+        Path dict = dir.resolve("words.txt");
+        Files.writeString(dict, "เเอปพลิเคชันสุขภาพดีเด่น\t5.0\n");
+
+        ThaiTrie trie;
+        try (var in = Files.newInputStream(dict)) {
+            trie = ThaiDictionaryLoader.loadFromStream(in, new ThaiTrie());
+        }
+        assertTrue(trie.contains("แอปพลิเคชันสุขภาพดีเด่น"));
+    }
 }
