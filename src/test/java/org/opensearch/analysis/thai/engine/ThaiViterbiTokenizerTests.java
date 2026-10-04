@@ -128,6 +128,20 @@ public class ThaiViterbiTokenizerTests extends LuceneTestCase {
         }
     }
 
+    public void testTccKeepsClusterOnsetAfterSaraEWhole() {
+        // เ + a true cluster or ห-led onset + -ิ / -ือ / -า is one syllable
+        for (String word : new String[]{"เปล่า", "เหล้า", "เหงา", "เพลิง", "เหลือ", "เกลือ", "เครือ"}) {
+            int[] runes = word.codePoints().toArray();
+            boolean[] valid = ThaiTCC.validPositions(runes);
+            for (int i = 1; i < runes.length; i++) {
+                assertFalse(word + " was split at " + i, valid[i]);
+            }
+        }
+        // a consonant pair that is not a cluster can still start the next word
+        assertTrue(ThaiTCC.validPositions("เทลง".codePoints().toArray())[2]);
+        assertTrue(ThaiTCC.validPositions("ทะเลว่า".codePoints().toArray())[4]);
+    }
+
     public void testEnglishPassthrough() {
         List<String> tokens = tok().tokenize("OpenSearch", false);
         assertEquals(List.of("OpenSearch"), tokens);

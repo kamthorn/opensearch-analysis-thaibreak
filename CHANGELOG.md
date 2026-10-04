@@ -11,6 +11,8 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 - **TCC cut a Mai Han-akat syllable after the vowel when it had no tone mark** (`ยั|ง`, `หั|ว`,
   `ผั|วะ`). The rule now requires the final (a consonant, or `วะ`), as in thai-break.
+- **TCC cut a true consonant cluster or ห-led onset after Sara E** (`เป|ล่า`, `เค|รือ`,
+  `เพ|ลิง`). These syllables are now one cluster, as in thai-break.
 
 ## [v1.4.0] — 2026-10-03
 
