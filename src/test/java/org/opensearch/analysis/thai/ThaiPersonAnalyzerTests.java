@@ -65,21 +65,24 @@ public class ThaiPersonAnalyzerTests extends LuceneTestCase {
             terms.contains(ThaiSoundex.udom83("ชาย")));
     }
 
-    public void testOovNameFragmentsKeepOriginalsWithoutShortCodes() throws IOException {
+    public void testOovNameFragmentsKeepOriginalsAndShortOnesGetNoCode() throws IOException {
         ThaiTrie trie = ThaiDictionaryLoader.loadDefault();
         ThaiPersonAnalyzer analyzer = new ThaiPersonAnalyzer(trie);
 
-        // สุรไชย is not in the dictionary: segments into สุ|ร|ไชย.
-        // Short-fragment codes (สุ, ร) are noise-dominated and suppressed;
-        // the 3-char ไชย keeps its code (documented precision/recall trade-off).
-        TokenStream ts = analyzer.tokenStream("name", "สุรไชย");
-        List<String> terms = collectTerms(ts);
-
-        assertTrue(terms.contains("สุ"));
-        assertTrue(terms.contains("ร"));
+        // สุรไชย is not in the dictionary: segments into สุร|ไชย (the out-of-vocabulary สุร is kept
+        // whole instead of being cut into สุ|ร). Both fragments are at least min_term_length long,
+        // so both keep their original term and get a phonetic code.
+        List<String> terms = collectTerms(analyzer.tokenStream("name", "สุรไชย"));
+        assertTrue(terms.contains("สุร"));
         assertTrue(terms.contains("ไชย"));
-        assertFalse(terms.contains(ThaiSoundex.udom83("สุ")));
+        assertTrue(terms.contains(ThaiSoundex.udom83("สุร")));
         assertTrue(terms.contains(ThaiSoundex.udom83("ไชย")));
+
+        // Tokens shorter than min_term_length (default 3) keep their original term but get no code:
+        // such short codes are noise-dominated.
+        List<String> shortTerms = collectTerms(analyzer.tokenStream("name", "สุ"));
+        assertTrue(shortTerms.contains("สุ"));
+        assertFalse(shortTerms.contains(ThaiSoundex.udom83("สุ")));
     }
 
     public void testHomophoneNameMatching() throws IOException {
