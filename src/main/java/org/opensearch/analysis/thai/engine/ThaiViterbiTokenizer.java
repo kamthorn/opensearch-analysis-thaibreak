@@ -46,6 +46,19 @@ public final class ThaiViterbiTokenizer {
     private static final double UNKNOWN_COST_FACTOR      = 2.0;
     private static final double TIE_EPSILON              = 1e-9;
 
+    /**
+     * An out-of-vocabulary word may span up to this many TCC clusters. Such an edge competes with
+     * the dictionary words, so a long unknown word is kept whole instead of being cut into short words.
+     */
+    private static final int    OOV_MAX_CLUSTERS         = 6;
+    /** Cost of an out-of-vocabulary edge of one cluster, relative to the cost of the rarest word. */
+    private static final double OOV_COST_FACTOR          = 3.0;
+    /**
+     * Extra cost per further cluster of an out-of-vocabulary edge, relative to the cost of the
+     * rarest word. Below about 0.5 an unknown word beats real words and F1 drops sharply.
+     */
+    private static final double OOV_CLUSTER_COST_FACTOR  = 0.8;
+
     private static final Pattern PAT_NON_THAI = Pattern.compile(
         "^(?:[a-zA-Z]+(?:[-_'][a-zA-Z0-9]+)*|\\d+(?:,\\d+)*(?:\\.\\d+)?%?|[ \\t]+|\\r?\\n|[^\\x{0E00}-\\x{0E7F}a-zA-Z0-9 \\t\\r\\n])"
     );
@@ -287,8 +300,17 @@ public final class ThaiViterbiTokenizer {
                         relax(dp, from, word, isUnk, i, j, mStr, cost, false);
                     }
                 }
+
+                // 3. Out-of-vocabulary words of 1..OOV_MAX_CLUSTERS TCC clusters
+                int clusters = 0;
+                for (int j = i + 1; j <= n && isOovRune(runes[j - 1]); j++) {
+                    if (!validPos[j]) continue;
+                    if (++clusters > OOV_MAX_CLUSTERS) break;
+                    double cost = (OOV_COST_FACTOR + OOV_CLUSTER_COST_FACTOR * (clusters - 1)) * rareCost;
+                    relax(dp, from, word, isUnk, i, j, new String(runes, i, j - i), cost, true);
+                }
             } else {
-                // 3. Non-Thai token
+                // 4. Non-Thai token
                 Matcher nonThaiM = PAT_NON_THAI.matcher(subText);
                 if (nonThaiM.find()) {
                     String mStr = nonThaiM.group();
@@ -357,6 +379,15 @@ public final class ThaiViterbiTokenizer {
 
     private static boolean isThaiRune(int r) {
         return r >= 0x0E00 && r <= 0x0E7F;
+    }
+
+    /**
+     * Characters an out-of-vocabulary edge may cover: Thai letters, vowels and marks, but not ๆ, ฯ,
+     * digits or other symbols, which are tokens of their own.
+     */
+    private static boolean isOovRune(int r) {
+        return (r >= 0x0E01 && r <= 0x0E2E) || (r >= 0x0E30 && r <= 0x0E3A)
+            || (r >= 0x0E40 && r <= 0x0E45) || (r >= 0x0E47 && r <= 0x0E4E);
     }
 
     private static boolean isThaiString(String s) {

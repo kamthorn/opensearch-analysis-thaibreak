@@ -142,6 +142,19 @@ public class ThaiViterbiTokenizerTests extends LuceneTestCase {
         assertTrue(ThaiTCC.validPositions("ทะเลว่า".codePoints().toArray())[4]);
     }
 
+    public void testOutOfVocabularyNameIsKeptWhole() {
+        // ชวรัตน์ and ศุภชัย are not dictionary words; they used to be cut into ชว|รัตน์ and ศุภ|ชัย
+        assertEquals(List.of("ชวรัตน์"), tok().tokenize("ชวรัตน์", false));
+        assertEquals(List.of("ศุภชัย"), tok().tokenize("ศุภชัย", false));
+        assertEquals("นาย", tok().tokenize("นายศุภชัยกล่าวว่ามีการประชุม", false).get(0));
+        assertEquals("ศุภชัย", tok().tokenize("นายศุภชัยกล่าวว่ามีการประชุม", false).get(1));
+    }
+
+    public void testRepetitionMarkIsNotPartOfAnUnknownWord() {
+        assertEquals(List.of("อื่น", "ๆ"), tok().tokenize("อื่นๆ", false));
+        assertEquals(List.of("ใด", "ๆ"), tok().tokenize("ใดๆ", false));
+    }
+
     public void testEnglishPassthrough() {
         List<String> tokens = tok().tokenize("OpenSearch", false);
         assertEquals(List.of("OpenSearch"), tokens);

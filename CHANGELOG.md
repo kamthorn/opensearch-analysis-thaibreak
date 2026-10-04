@@ -15,6 +15,18 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
   Names composed of dictionary words split again (`ณัฐพล` → `ณัฐ|พล`); add the names you need
   through `user_dictionary` / `user_dictionary_rules`.
 
+### 🚀 Enhancements
+
+- **A long out-of-vocabulary word is no longer cut into short dictionary words.** The segmentation
+  now also considers an unknown word of 1 to 6 TCC clusters at every position, as in thai-break
+  (cost 3.0 + 0.8 per further cluster). `ชวรัตน์` and `ศุภชัย` stay whole instead of becoming
+  `ชว|รัตน์` and `ศุภ|ชัย`, and `สุรไชย` is `สุร|ไชย` instead of `สุ|ร|ไชย`. The unknown word covers
+  Thai letters, vowels and tone marks only, so `ๆ`, `ฯ` and digits stay separate tokens. On the
+  LST20 test split with the bundled dictionary, word F1 goes from 0.8271 to 0.8347 and the share
+  of out-of-vocabulary person names that come out as one token from 9.6% to 26.2%. Indexed
+  terms change for text with unknown words, so existing indices using the `thaibreak` tokenizer
+  should be reindexed.
+
 ### 🐛 Bug Fixes
 
 - **TCC cut a Mai Han-akat syllable after the vowel when it had no tone mark** (`ยั|ง`, `หั|ว`,
