@@ -5,6 +5,13 @@ All notable changes to `opensearch-analysis-thaibreak` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).  
 Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18.0).
 
+## [Unreleased]
+
+### 🐛 Bug Fixes
+
+- **TCC cut a Mai Han-akat syllable after the vowel when it had no tone mark** (`ยั|ง`, `หั|ว`,
+  `ผั|วะ`). The rule now requires the final (a consonant, or `วะ`), as in thai-break.
+
 ## [v1.4.0] — 2026-10-03
 
 > **Reindex required** for indices using the `thaibreak` or `thaibreak_person` analyzers
