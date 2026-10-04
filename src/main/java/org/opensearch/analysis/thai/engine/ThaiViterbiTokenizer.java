@@ -58,6 +58,18 @@ public final class ThaiViterbiTokenizer {
      * rarest word. Below about 0.5 an unknown word beats real words and F1 drops sharply.
      */
     private static final double OOV_CLUSTER_COST_FACTOR  = 0.8;
+    /**
+     * Frequent function words. An out-of-vocabulary edge may not start or end with one of them, so an
+     * unknown word does not swallow its neighbours (ฮิวจ์ส|ไม่|ได้, not ฮิวจ์สไม่ได้): the same name
+     * would otherwise be tokenized differently on its own and next to a function word, and a search
+     * for it would miss the document.
+     */
+    private static final String[] OOV_BOUNDARY_WORDS = {
+        "ที่", "และ", "ของ", "ใน", "ได้", "ให้", "ไม่", "ว่า", "เป็น",
+        "มี", "จะ", "ไป", "มา", "ก็", "กับ", "แต่", "หรือ", "จาก",
+        "โดย", "เพื่อ", "แล้ว", "อยู่", "นี้", "นั้น", "ซึ่ง", "การ", "ความ",
+        "ต่อ", "ถึง", "ยัง", "เมื่อ", "ทั้ง", "ตาม", "ด้วย", "อีก", "คือ",
+    };
 
     private static final Pattern PAT_NON_THAI = Pattern.compile(
         "^(?:[a-zA-Z]+(?:[-_'][a-zA-Z0-9]+)*|\\d+(?:,\\d+)*(?:\\.\\d+)?%?|[ \\t]+|\\r?\\n|[^\\x{0E00}-\\x{0E7F}a-zA-Z0-9 \\t\\r\\n])"
@@ -306,8 +318,10 @@ public final class ThaiViterbiTokenizer {
                 for (int j = i + 1; j <= n && isOovRune(runes[j - 1]); j++) {
                     if (!validPos[j]) continue;
                     if (++clusters > OOV_MAX_CLUSTERS) break;
+                    String oovWord = new String(runes, i, j - i);
+                    if (bordersFunctionWord(oovWord)) continue;
                     double cost = (OOV_COST_FACTOR + OOV_CLUSTER_COST_FACTOR * (clusters - 1)) * rareCost;
-                    relax(dp, from, word, isUnk, i, j, new String(runes, i, j - i), cost, true);
+                    relax(dp, from, word, isUnk, i, j, oovWord, cost, true);
                 }
             } else {
                 // 4. Non-Thai token
@@ -379,6 +393,14 @@ public final class ThaiViterbiTokenizer {
 
     private static boolean isThaiRune(int r) {
         return r >= 0x0E00 && r <= 0x0E7F;
+    }
+
+    /** Whether {@code word} is longer than, and starts or ends with, a word of {@link #OOV_BOUNDARY_WORDS}. */
+    private static boolean bordersFunctionWord(String word) {
+        for (String f : OOV_BOUNDARY_WORDS) {
+            if (word.length() > f.length() && (word.startsWith(f) || word.endsWith(f))) return true;
+        }
+        return false;
     }
 
     /**
