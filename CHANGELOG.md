@@ -26,6 +26,12 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
   of out-of-vocabulary person names that come out as one token from 9.6% to 26.2%. Indexed
   terms change for text with unknown words, so existing indices using the `thaibreak` tokenizer
   should be reindexed.
+- **An out-of-vocabulary word may not start or end with a frequent function word** (36 words such
+  as `ที่ และ ไม่ ได้ มา ว่า`), so an unknown word does not swallow the function words next to it
+  when the text has no spaces (`ฮิวจ์สไม่ได้`, `จินตะและ`). Without this a name was tokenized
+  differently on its own and in a document and a search for it missed that document. In a
+  retrieval test in OpenSearch 3.9.0 on the 483 LST20 test articles with 150 person-name queries,
+  recall went from 0.976 to 0.986; LST20 test word F1 goes from 0.8347 to 0.8360.
 
 ### 🐛 Bug Fixes
 

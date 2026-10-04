@@ -150,6 +150,14 @@ public class ThaiViterbiTokenizerTests extends LuceneTestCase {
         assertEquals("ศุภชัย", tok().tokenize("นายศุภชัยกล่าวว่ามีการประชุม", false).get(1));
     }
 
+    public void testUnknownWordDoesNotSwallowFunctionWords() {
+        // ฮิวจ์ส and จินตะ are not dictionary words; they must not absorb the function words next to them
+        assertEquals(List.of("มาร์ค", "ฮิวจ์ส", "ไม่", "ได้", "สามารถ"), tok().tokenize("มาร์คฮิวจ์สไม่ได้สามารถ", false));
+        List<String> tokens = tok().tokenize("ภานุวัฒน์ จินตะและสุทธินันท์", false);
+        assertTrue(tokens.toString(), tokens.contains("และ"));
+        assertTrue(tokens.toString(), tokens.contains("จินตะ"));
+    }
+
     public void testRepetitionMarkIsNotPartOfAnUnknownWord() {
         assertEquals(List.of("อื่น", "ๆ"), tok().tokenize("อื่นๆ", false));
         assertEquals(List.of("ใด", "ๆ"), tok().tokenize("ใดๆ", false));
