@@ -7,6 +7,14 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ## [Unreleased]
 
+### ✨ Dictionary
+
+- **Removed the 10,075 Thai given names added in v1.4.0** (41,272 words total).
+  They came from PyThaiNLP's `person_names_*_th.txt`, which PyThaiNLP lists as
+  korkeatw/thai-names-corpus under CC BY-SA 4.0, not Apache-2.0 as stated when they were added.
+  Names composed of dictionary words split again (`ณัฐพล` → `ณัฐ|พล`); add the names you need
+  through `user_dictionary` / `user_dictionary_rules`.
+
 ### 🐛 Bug Fixes
 
 - **TCC cut a Mai Han-akat syllable after the vowel when it had no tone mark** (`ยั|ง`, `หั|ว`,
