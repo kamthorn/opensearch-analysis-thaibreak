@@ -83,7 +83,8 @@ public class ThaiPersonAnalyzerTests extends LuceneTestCase {
     }
 
     public void testHomophoneNameMatching() throws IOException {
-        ThaiTrie trie = ThaiDictionaryLoader.loadDefault();
+        // Given names are not in the bundled dictionary; add them as a user dictionary would
+        ThaiTrie trie = ThaiDictionaryLoader.loadFromLines(List.of("ณัฐพล", "นัฐพล"), ThaiDictionaryLoader.loadDefault().copy());
         ThaiPersonAnalyzer analyzer = new ThaiPersonAnalyzer(trie);
 
         // Test ณัฐพล vs นัฐพล (homophones in Thai names)
@@ -93,7 +94,7 @@ public class ThaiPersonAnalyzerTests extends LuceneTestCase {
         TokenStream ts2 = analyzer.tokenStream("name", "นัฐพล");
         List<String> terms2 = collectTerms(ts2);
 
-        // ณัฐพล and นัฐพล are both bundled dictionary words (given names), so soundex is
+        // ณัฐพล and นัฐพล are both dictionary words (user dictionary here), so soundex is
         // computed once for the whole name (v1.3.1+: whole-token scoping) rather than per
         // decompound fragment — a more precise signature than matching on the shared first
         // syllable alone, since it is specific to this exact name pair instead of every
@@ -110,7 +111,7 @@ public class ThaiPersonAnalyzerTests extends LuceneTestCase {
     }
 
     public void testToneStrippingInPersonNames() throws IOException {
-        ThaiTrie trie = ThaiDictionaryLoader.loadDefault();
+        ThaiTrie trie = ThaiDictionaryLoader.loadFromLines(List.of("พรทิพย์"), ThaiDictionaryLoader.loadDefault().copy());
         ThaiPersonAnalyzer analyzer = new ThaiPersonAnalyzer(trie);
 
         TokenStream ts = analyzer.tokenStream("name", "พรทิพย์");
@@ -120,7 +121,7 @@ public class ThaiPersonAnalyzerTests extends LuceneTestCase {
         assertTrue(terms.contains("พร"));
         assertTrue(terms.contains("ทิพย์"));
 
-        // พรทิพย์ is a bundled dictionary word (given name), so tone-stripping (v1.3.1+:
+        // พรทิพย์ is a dictionary word (user dictionary here), so tone-stripping (v1.3.1+:
         // whole-token scoping) strips the whole name -> "พรทิพย", not just its "ทิพย์" half.
         assertTrue("Should contain thanthakhat stripped form 'พรทิพย'", terms.contains("พรทิพย"));
     }
