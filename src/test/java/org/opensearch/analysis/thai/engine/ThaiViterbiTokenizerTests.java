@@ -117,6 +117,17 @@ public class ThaiViterbiTokenizerTests extends LuceneTestCase {
         assertSame(canonical, ThaiViterbiTokenizer.normalizeForMatching(canonical));
     }
 
+    public void testTccKeepsMaiHanAkatSyllableWhole() {
+        // Mai Han-akat is always followed by a final (or -ัวะ), so the syllable is one cluster
+        for (String word : new String[]{"ผัวะ", "จั๊วะ", "ยัง", "ยั่ง", "หัว", "สัญ", "กัณฐ์"}) {
+            int[] runes = word.codePoints().toArray();
+            boolean[] valid = ThaiTCC.validPositions(runes);
+            for (int i = 1; i < runes.length; i++) {
+                assertFalse(word + " was split at " + i, valid[i]);
+            }
+        }
+    }
+
     public void testEnglishPassthrough() {
         List<String> tokens = tok().tokenize("OpenSearch", false);
         assertEquals(List.of("OpenSearch"), tokens);
