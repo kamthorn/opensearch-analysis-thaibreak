@@ -595,6 +595,61 @@ Empirical results measured on Linux amd64 (JDK 25, 20,000 iterations per workloa
 
 - **Streaming Safe-Chunking ($O(1)$ Memory)**: Rather than buffering arbitrary amounts of text into memory, the tokenizer streams large documents in sliding 8,192-character windows with `findSafeCut()` lookback. It safely breaks on whitespace, newlines, and punctuation without splitting Thai Character Clusters (TCC), preventing OOM on massive text fields or OCR dumps.
 
+## Retrieval benchmark
+
+Measured on 483 LST20 test articles in OpenSearch 3.9.0 with plugin v1.5.0 (one shard, one segment) and
+750 queries: 450 named entities (150 each person, organization, location) and 300 content words, each
+occurring in 2 to 40 articles. A query is a `match` with `operator: and`. **Strict** relevance counts an
+article when the gold annotation has the query as an entity or word there; **lenient** relevance counts any
+article whose text contains the query. F1 is the mean per query, over the set of returned articles. The
+scripts are in [`scripts/retrieval-benchmark`](scripts/retrieval-benchmark) (the corpus is not included).
+
+The plugin's bundled dictionary is the base dictionary plus thai-break-dict-extra, which keeps compounds and
+names whole. "Base" below is the same plugin with only the 25,402 base words (its own weights, nothing else
+changed).
+
+**F1, strict relevance** (index mode / search mode of `decompound_mode`):
+
+| Setup | Entities, base | Entities, bundled | Words, base | Words, bundled |
+|---|---:|---:|---:|---:|
+| `none` / `none` (analyzer `thaibreak`) | 0.818 | **0.847** | **0.823** | 0.817 |
+| `mixed` / `none` | 0.801 | 0.822 | 0.786 | 0.784 |
+| `mixed` / `mixed` | 0.801 | 0.822 | 0.786 | 0.784 |
+| `discard` / `discard` | 0.787 | 0.807 | 0.729 | 0.726 |
+| built-in `thai` analyzer (reference) | 0.776 | | 0.771 | |
+
+**F1, lenient relevance:**
+
+| Setup | Entities, base | Entities, bundled | Words, base | Words, bundled |
+|---|---:|---:|---:|---:|
+| `none` / `none` | 0.903 | 0.910 | 0.848 | 0.830 |
+| `mixed` / `none` | 0.891 | 0.910 | **0.903** | 0.891 |
+| `discard` / `discard` | 0.874 | 0.883 | 0.832 | 0.818 |
+
+What the numbers say (differences are paired over queries; "significant" means the 95% bootstrap interval
+excludes 0):
+
+- **The bundled dictionary helps entity queries:** strict F1 is higher by 0.021 to 0.029 in every setup
+  (significant). For content words it makes no significant difference under strict relevance (-0.006 to
+  -0.002) and is slightly lower under lenient relevance (-0.012 to -0.018, borderline). The index is 0.4% (`none`) to 1% (`mixed`) larger.
+- **`mixed` trades precision for recall:** the sub-tokens of compounds match more articles, so recall rises
+  (words, bundled: 0.910 to 0.963) and precision falls (0.797 to 0.731). Under strict relevance, which counts
+  only articles where the query is a word of its own, F1 is lower than with `none` (-0.017 to -0.037); under
+  lenient relevance, which also counts a query inside a longer word, content-word F1 is higher by 0.056 to
+  0.061 (significant). Searching with `mixed` gives the same hits as searching with `none` for all but 1 or 2 queries.
+- **`discard` is the worst setup** for every query type (strict F1 down by 0.03 to 0.09 against `none`).
+- **Ranking:** when the compound token and its sub-tokens are in separate fields, a `bool` `should` of the
+  main field (`none`) and a `.sub` field (indexed with `mixed`) returns the same articles as `mixed`/`none` but
+  ranks better. Strict nDCG@10 for content words is 0.870 (base) and 0.862 (bundled), against 0.817 and 0.815
+  for `mixed` in one field and 0.852 and 0.838 for `none`. Boosting the main field 3:1 or 1:1 made no
+  meaningful difference (at most 0.004 nDCG@10), so this benchmark does not show that extra weight on a direct
+  compound match helps ranking beyond having the compound token at all.
+
+Limits: one corpus of Thai news (483 articles), queries drawn from the gold annotation, one field and
+single-term queries (no phrase queries or multi-word queries), and a single metric family. It does not test
+whether a direct compound match should outrank its parts for your data; try your own queries before relying on
+a boost.
+
 ## Known limitations
 
 - **User dictionary format**: `user_dictionary` is a flat `word[\tweight]`
