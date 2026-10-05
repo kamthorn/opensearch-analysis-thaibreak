@@ -5,6 +5,14 @@ All notable changes to `opensearch-analysis-thaibreak` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).  
 Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18.0).
 
+## [Unreleased]
+
+### Documentation
+
+- Retrieval benchmark on 483 LST20 test articles (750 queries): bundled dictionary against the base
+  dictionary only, and `decompound_mode` setups including a separate `.sub` field. The scripts are in
+  `scripts/retrieval-benchmark`. See the README.
+
 ## [v1.5.0] — 2026-10-04
 
 > **Reindex required** for indices that use the `thaibreak` tokenizer or the `thaibreak` and
