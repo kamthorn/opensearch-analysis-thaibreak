@@ -12,8 +12,8 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 > restricts reproducing or redistributing the corpus and says nothing about derived data, and v1.4.0
 > also contained a list of given names under a licence (CC BY-SA 4.0) that is not compatible with
 > this project's. v1.5.1 is v1.5.0 without the word list and the option that used it; segmentation,
-> dictionary and analyzers are the same as in v1.5.0. A reindex is only needed if you are coming from
-> v1.3.1 or earlier (see the v1.5.0 and v1.4.0 notes below).
+> dictionary and analyzers are the same as in v1.5.0, so there is nothing to reindex coming from
+> v1.5.0; coming from v1.4.0 or earlier, follow the reindex note of v1.5.0 below.
 
 ### Removed
 
