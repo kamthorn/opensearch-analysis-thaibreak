@@ -5,7 +5,21 @@ All notable changes to `opensearch-analysis-thaibreak` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).  
 Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18.0).
 
-## [Unreleased]
+## [v1.5.1] — 2026-10-05
+
+> **v1.4.0 and v1.5.0 were withdrawn** (releases, tags and container images removed). Use v1.5.1.
+> Both contained a word list derived from statistics of the LST20 corpus, whose usage agreement
+> restricts reproducing or redistributing the corpus and says nothing about derived data, and v1.4.0
+> also contained a list of given names under a licence (CC BY-SA 4.0) that is not compatible with
+> this project's. v1.5.1 is v1.5.0 without the word list and the option that used it; segmentation,
+> dictionary and analyzers are the same as in v1.5.0. A reindex is only needed if you are coming from
+> v1.3.1 or earlier (see the v1.5.0 and v1.4.0 notes below).
+
+### Removed
+
+- **`filter_bound_morphemes`** (tokenizer option) and its bundled word list of about 1,000
+  entries. The option was off by default; the setting is no longer read, so remove it from your
+  index settings. It improved boundary F1 on LST20 test by 0.11 points (93.19% to 93.30%).
 
 ### Documentation
 
@@ -13,7 +27,7 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
   dictionary only, and `decompound_mode` setups including a separate `.sub` field. The scripts are in
   `scripts/retrieval-benchmark`. See the README.
 
-## [v1.5.0] — 2026-10-04
+## [v1.5.0] — 2026-10-04 (withdrawn, see v1.5.1)
 
 > **Reindex required** for indices that use the `thaibreak` tokenizer or the `thaibreak` and
 > `thaibreak_person` analyzers. Segmentation changes for out-of-vocabulary words and some
@@ -53,7 +67,7 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 - **TCC cut a true consonant cluster or ห-led onset after Sara E** (`เป|ล่า`, `เค|รือ`,
   `เพ|ลิง`). These syllables are now one cluster, as in thai-break.
 
-## [v1.4.0] — 2026-10-03
+## [v1.4.0] — 2026-10-03 (withdrawn, see v1.5.1)
 
 > **Reindex required** for indices using the `thaibreak` or `thaibreak_person` analyzers
 > (they now normalize Thai spelling, so indexed terms change) and for fields using
