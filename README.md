@@ -70,22 +70,22 @@ From GitHub Releases (Direct HTTPS URL — no compilation needed):
 
 ```bash
 # OpenSearch 3.9.0
-bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.5.0/analysis-thaibreak-3.9.0.0.zip
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.5.1/analysis-thaibreak-3.9.0.0.zip
 
 # OpenSearch 3.8.0
-bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.5.0/analysis-thaibreak-3.8.0.0.zip
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.5.1/analysis-thaibreak-3.8.0.0.zip
 
 # OpenSearch 2.19.0
-bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.5.0/analysis-thaibreak-2.19.0.0.zip
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.5.1/analysis-thaibreak-2.19.0.0.zip
 
 # OpenSearch 2.18.0
-bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.5.0/analysis-thaibreak-2.18.0.0.zip
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.5.1/analysis-thaibreak-2.18.0.0.zip
 
 # OpenSearch 2.17.1
-bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.5.0/analysis-thaibreak-2.17.1.0.zip
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.5.1/analysis-thaibreak-2.17.1.0.zip
 
 # OpenSearch 2.15.0
-bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.5.0/analysis-thaibreak-2.15.0.0.zip
+bin/opensearch-plugin install https://github.com/kamthorn/opensearch-analysis-thaibreak/releases/download/v1.5.1/analysis-thaibreak-2.15.0.0.zip
 ```
 
 Or from local ZIP:
@@ -597,7 +597,7 @@ Empirical results measured on Linux amd64 (JDK 25, 20,000 iterations per workloa
 
 ## Retrieval benchmark
 
-Measured on 483 LST20 test articles in OpenSearch 3.9.0 with plugin v1.5.0 (one shard, one segment) and
+Measured on 483 LST20 test articles in OpenSearch 3.9.0 with plugin v1.5.0, whose engine is the same as v1.5.1 (one shard, one segment) and
 750 queries: 450 named entities (150 each person, organization, location) and 300 content words, each
 occurring in 2 to 40 articles. A query is a `match` with `operator: and`. **Strict** relevance counts an
 article when the gold annotation has the query as an entity or word there; **lenient** relevance counts any
