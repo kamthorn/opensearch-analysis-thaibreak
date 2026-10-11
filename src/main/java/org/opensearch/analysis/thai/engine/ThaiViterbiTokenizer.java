@@ -59,8 +59,9 @@ public final class ThaiViterbiTokenizer {
      */
     private static final double OOV_CLUSTER_COST_FACTOR  = 0.8;
     /**
-     * Frequent function words. An out-of-vocabulary edge may not start or end with one of them, so an
-     * unknown word does not swallow its neighbours (ฮิวจ์ส|ไม่|ได้, not ฮิวจ์สไม่ได้): the same name
+     * Frequent function words. An out-of-vocabulary edge may not start or end with one of them, nor
+     * contain one at a cluster boundary, so an unknown word does not swallow its neighbours
+     * (ฮิวจ์ส|ไม่|ได้, not ฮิวจ์สไม่ได้; ชวรัตน์|ที่|ลืม|ไว้, not ชวรัตน์ที่ลืมไว้): the same name
      * would otherwise be tokenized differently on its own and next to a function word, and a search
      * for it would miss the document.
      */
@@ -69,7 +70,16 @@ public final class ThaiViterbiTokenizer {
         "มี", "จะ", "ไป", "มา", "ก็", "กับ", "แต่", "หรือ", "จาก",
         "โดย", "เพื่อ", "แล้ว", "อยู่", "นี้", "นั้น", "ซึ่ง", "การ", "ความ",
         "ต่อ", "ถึง", "ยัง", "เมื่อ", "ทั้ง", "ตาม", "ด้วย", "อีก", "คือ",
+        "ไว้",
     };
+    /**
+     * The function words that may not occur inside an out-of-vocabulary word, as code points. มา and
+     * มี may: they are frequent syllables of transliterated names (อาห์มาดิเนจัด, อะมีรุ้ลฮัจย์).
+     */
+    private static final int[][] OOV_INNER_FUNCTION_WORDS = Arrays.stream(OOV_BOUNDARY_WORDS)
+        .filter(f -> !f.equals("มา") && !f.equals("มี"))
+        .map(f -> f.codePoints().toArray())
+        .toArray(int[][]::new);
 
     private static final Pattern PAT_NON_THAI = Pattern.compile(
         "^(?:[a-zA-Z]+(?:[-_'][a-zA-Z0-9]+)*|\\d+(?:,\\d+)*(?:\\.\\d+)?%?|[ \\t]+|\\r?\\n|[^\\x{0E00}-\\x{0E7F}a-zA-Z0-9 \\t\\r\\n])"
@@ -319,7 +329,10 @@ public final class ThaiViterbiTokenizer {
                     if (!validPos[j]) continue;
                     if (++clusters > OOV_MAX_CLUSTERS) break;
                     String oovWord = new String(runes, i, j - i);
-                    if (bordersFunctionWord(oovWord)) continue;
+                    if (bordersFunctionWord(oovWord)) {
+                        if (endsWithInnerFunctionWord(runes, i, j, validPos)) break;
+                        continue;
+                    }
                     double cost = (OOV_COST_FACTOR + OOV_CLUSTER_COST_FACTOR * (clusters - 1)) * rareCost;
                     relax(dp, from, word, isUnk, i, j, oovWord, cost, true);
                 }
@@ -399,6 +412,19 @@ public final class ThaiViterbiTokenizer {
     private static boolean bordersFunctionWord(String word) {
         for (String f : OOV_BOUNDARY_WORDS) {
             if (word.length() > f.length() && (word.startsWith(f) || word.endsWith(f))) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Whether {@code runes[start, end)} ends with a word of {@link #OOV_INNER_FUNCTION_WORDS} that starts
+     * at a cluster boundary after {@code start}. Every longer out-of-vocabulary edge from {@code start}
+     * would contain that word.
+     */
+    private static boolean endsWithInnerFunctionWord(int[] runes, int start, int end, boolean[] validPos) {
+        for (int[] f : OOV_INNER_FUNCTION_WORDS) {
+            int k = end - f.length;
+            if (k > start && validPos[k] && Arrays.equals(runes, k, end, f, 0, f.length)) return true;
         }
         return false;
     }

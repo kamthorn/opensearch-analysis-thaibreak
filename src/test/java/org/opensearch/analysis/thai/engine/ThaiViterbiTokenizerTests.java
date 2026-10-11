@@ -158,6 +158,13 @@ public class ThaiViterbiTokenizerTests extends LuceneTestCase {
         assertTrue(tokens.toString(), tokens.contains("จินตะ"));
     }
 
+    public void testUnknownWordDoesNotContainFunctionWords() {
+        // ชวรัตน์ is not a dictionary word; it used to swallow ที่ลืมไว้ into one unknown word
+        assertEquals(List.of("ชวรัตน์", "ที่", "ลืม", "ไว้"), tok().tokenize("ชวรัตน์ที่ลืมไว้", false));
+        // มา may occur inside an unknown word: it is a frequent syllable of transliterated names
+        assertEquals("อาห์มาดิเนจัด", tok().tokenize("อาห์มาดิเนจัดกล่าวว่า", false).get(0));
+    }
+
     public void testRepetitionMarkIsNotPartOfAnUnknownWord() {
         assertEquals(List.of("อื่น", "ๆ"), tok().tokenize("อื่นๆ", false));
         assertEquals(List.of("ใด", "ๆ"), tok().tokenize("ใดๆ", false));

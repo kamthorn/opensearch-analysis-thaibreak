@@ -5,6 +5,19 @@ All notable changes to `opensearch-analysis-thaibreak` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).  
 Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18.0).
 
+## [Unreleased]
+
+### Changed
+
+- **An out-of-vocabulary word may not contain a frequent function word either**, only start or end
+  with one was forbidden before, and `ไว้` joins the list (37 words), as in thai-break. A name
+  followed by a function word and a short word came out as one token (`ชวรัตน์ที่ลืมไว้`); it is
+  now `ชวรัตน์|ที่|ลืม|ไว้`. `มา` and `มี` may still occur inside an unknown word, since they are
+  frequent syllables of transliterated names (`อาห์มาดิเนจัด`). In OpenSearch 3.9.0 on the 483
+  LST20 test articles, recall for 150 person-name queries goes from 0.986 to 0.989 with no other
+  query group changing, and LST20 test word F1 with the bundled dictionary from 0.8364 to 0.8368.
+  Output changes for text with unknown words, so indices built from it should be reindexed.
+
 ## [v1.5.1] — 2026-10-05
 
 > **v1.4.0 and v1.5.0 were withdrawn** (releases, tags and container images removed). Use v1.5.1.
