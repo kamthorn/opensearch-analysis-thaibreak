@@ -7,6 +7,8 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ## [Unreleased]
 
+## [v1.6.0] — 2026-10-12
+
 ### Added
 
 - **A run of two or more spelled-out letters is one token** (`เอทีเอ็ม`, `ยูเอ็น`, `ดีเอสไอ`), as
