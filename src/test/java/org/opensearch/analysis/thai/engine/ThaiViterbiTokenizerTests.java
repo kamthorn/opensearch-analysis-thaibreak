@@ -192,14 +192,6 @@ public class ThaiViterbiTokenizerTests extends LuceneTestCase {
         assertEquals(List.of(long40, "เสด็จ"), custom.tokenize(long40 + "เสด็จ", false));
     }
 
-    public void testRoyalVocabularyIsOneToken() {
-        // from thai-break-dict-extra data/royal: fixed royal terms are single tokens
-        assertEquals(List.of("พระชนมพรรษา"), tok().tokenize("พระชนมพรรษา", false));
-        assertEquals(List.of("พระบรมวงศานุวงศ์", "เสด็จ"), tok().tokenize("พระบรมวงศานุวงศ์เสด็จ", false));
-        assertEquals(List.of("สมเด็จพระเทพรัตนราชสุดา"), tok().tokenize("สมเด็จพระเทพรัตนราชสุดา", false));
-        assertEquals(List.of("พระบาทสมเด็จพระเจ้าอยู่หัว"), tok().tokenize("พระบาทสมเด็จพระเจ้าอยู่หัว", false));
-    }
-
     public void testSpelledOutLettersAreOneToken() {
         assertEquals(List.of("เอทีเอ็ม"), tok().tokenize("เอทีเอ็ม", false));
         assertEquals(List.of("ดีเอสไอ"), tok().tokenize("ดีเอสไอ", false));

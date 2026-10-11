@@ -9,15 +9,6 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ### Added
 
-- **62 fixed royal terms** from the new `royal` category of thai-break-dict-extra (`พระชนมพรรษา`,
-  `พระบรมราชานุญาต`, `พระบรมวงศานุวงศ์`, `สมเด็จพระเทพรัตนราชสุดา`, `พระอิสริยาภรณ์`, ...) join the bundled
-  dictionary at weight 4.0 (41,334 words). Only the terms that are one lexical unit: productive
-  combinations such as `ทรงเปิด` or `ถวายพระพร` made the result worse on the gold corpora. LST20 test
-  word F1 with the bundled dictionary goes from 0.8441 to 0.8446 (train 0.8499 to 0.8507, eval 0.8241 to 0.8305). The rest
-  of dict-extra has changed since the dictionary was last merged (collision-prone names), and is
-  not merged here. Output changes for text with royal terms, so indices built from it should be
-  reindexed.
-
 - **A run of two or more spelled-out letters is one token** (`เอทีเอ็ม`, `ยูเอ็น`, `ดีเอสไอ`), as
   in thai-break: the names of the letters of the Latin alphabet in Thai were cut into single
   letters, so a query for `ดีเอสไอ` with the `and` operator matched any document with `ดี`, `เอส` and
@@ -25,10 +16,18 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
   from 0.8414 to 0.8441. Output changes for text with spelled-out letters, so indices built from
   it should be reindexed.
 
+### Changed
+
+- **421 entries removed from the bundled dictionary** (40,913 words now): the news compounds and
+  connectives, the abbreviation files added after the last merge, the royal list, and the party and
+  landmark names that thai-break-dict-extra selected from the LST20 corpus. Output changes for text
+  with those words, so indices built from it should be reindexed.
+
 ### Measured
 
-- Retrieval of the changes below (royal terms, spelled-out letters, abbreviations) on the 483 LST20
-  test articles in OpenSearch 3.9.0, against the build with the word weights: recall for 150
+- Retrieval of the changes below (spelled-out letters, abbreviations) on the 483 LST20
+  test articles in OpenSearch 3.9.0, against the build with the word weights (measured before the
+  LST20-derived entries were removed from the bundled dictionary): recall for 150
   person-name queries stays 0.990, strict F1 of the 450 name queries goes from 0.845 to 0.846
   (`none/none`) and of the 300 word queries from 0.817 to 0.820, with the layered query nothing
   moves by more than 0.003. A rule that kept a name whole after a title (`นายสมชาย`) was tried and

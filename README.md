@@ -9,7 +9,7 @@ OpenSearch Analysis Plugin for the Thai language — powered by the **Viterbi + 
 
 - **Deterministic** segmentation — no JRE locale/platform dependency (unlike the built-in `ThaiTokenizer` which relies on `java.text.BreakIterator`)
 - **Frequency-weighted** Viterbi shortest-path algorithm with TCC (Thai Character Cluster) constraints
-- **41,334-word** bundled dictionary with category weights and word frequencies counted on the Prachathai-67k news corpus (Apache-2.0, see [NOTICE.txt](NOTICE.txt))
+- **40,913-word** bundled dictionary with category weights and word frequencies counted on the Prachathai-67k news corpus (Apache-2.0, see [NOTICE.txt](NOTICE.txt))
 - **User dictionary** support — add domain-specific terms (medical, legal, brand names, etc.)
 - Mixed Thai/Latin/numeric content handled correctly
 - OOV (out-of-vocabulary) fallback: unknown words are preserved as single tokens
@@ -22,7 +22,7 @@ OpenSearch Analysis Plugin for the Thai language — powered by the **Viterbi + 
 | Cross-JVM deterministic | ❌ | ✅ |
 | User dictionary | ❌ | ✅ |
 | Compound words | Varies by JRE | Frequency-weighted |
-| Dictionary size | Varies by JRE | 41,334 words |
+| Dictionary size | Varies by JRE | 40,913 words |
 
 ## Installation & Docker
 
@@ -604,8 +604,8 @@ article when the gold annotation has the query as an entity or word there; **len
 article whose text contains the query. F1 is the mean per query, over the set of returned articles. The
 scripts are in [`scripts/retrieval-benchmark`](scripts/retrieval-benchmark) (the corpus is not included).
 
-The plugin's bundled dictionary is the base dictionary plus thai-break-dict-extra, which keeps compounds and
-names whole. "Base" below is the same plugin with only the 25,402 base words (its own weights, nothing else
+The plugin's bundled dictionary is the base dictionary plus thai-break-dict-extra (without the entries
+selected from LST20), which keeps compounds and names whole. "Base" below is the same plugin with only the 25,402 base words (its own weights, nothing else
 changed).
 
 **F1, strict relevance** (index mode / search mode of `decompound_mode`):
