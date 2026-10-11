@@ -25,7 +25,8 @@ import java.nio.charset.StandardCharsets;
  *
  * <p>The default dictionary is the {@code words.txt} resource bundled inside
  * this JAR (41,272 words with category weights, Apache-2.0, from the {@code thai-break}
- * and {@code thai-break-dict-extra} projects). User dictionaries follow the same
+ * and {@code thai-break-dict-extra} projects), with the word weights of thai-break
+ * ({@code word-weights.tsv}) replacing the weights of the words they list. User dictionaries follow the same
  * TSV format: one word per line, with an optional tab-separated weight.
  * Words are stored as the tokenizer matches them
  * ({@link ThaiViterbiTokenizer#normalizeForMatching(String)}), e.g. {@code นํ้า} as {@code น้ำ}.
@@ -37,6 +38,12 @@ public final class ThaiDictionaryLoader {
 
     /** Classpath location of the bundled word list. */
     static final String DEFAULT_DICT_RESOURCE = "/org/opensearch/analysis/thai/words.txt";
+
+    /**
+     * Classpath location of the bundled word weights (thai-break {@code data/word-weights.tsv}, word
+     * frequencies counted on Prachathai-67k, Apache-2.0). They replace the weights of words.txt.
+     */
+    static final String DEFAULT_WEIGHTS_RESOURCE = "/org/opensearch/analysis/thai/word-weights.tsv";
 
     private ThaiDictionaryLoader() {}
 
@@ -50,6 +57,7 @@ public final class ThaiDictionaryLoader {
                 if (is != null) {
                     CompactDawg dawg = CompactDawg.loadFromStream(is);
                     java.util.Map<String, Double> weights = loadCustomWeights(DEFAULT_DICT_RESOURCE);
+                    weights.putAll(loadCustomWeights(DEFAULT_WEIGHTS_RESOURCE));
                     return new ThaiTrie(dawg, weights);
                 }
             } catch (Exception ignored) {
@@ -61,7 +69,11 @@ public final class ThaiDictionaryLoader {
                 if (is == null) {
                     throw new IOException("Bundled Thai dictionary not found: " + DEFAULT_DICT_RESOURCE);
                 }
-                return loadFromStream(is, new ThaiTrie());
+                ThaiTrie trie = loadFromStream(is, new ThaiTrie());
+                try (InputStream weights = ThaiDictionaryLoader.class.getResourceAsStream(DEFAULT_WEIGHTS_RESOURCE)) {
+                    if (weights != null) loadFromStream(weights, trie);
+                }
+                return trie;
             } catch (IOException e) {
                 throw new UncheckedIOException("Failed to load bundled Thai dictionary", e);
             }

@@ -170,6 +170,15 @@ public class ThaiViterbiTokenizerTests extends LuceneTestCase {
         assertEquals(List.of("พี่", "เต๋อ", "มา", "แล้ว"), tok().tokenize("พี่เต๋อมาแล้ว", false));
     }
 
+    public void testDefaultDictionaryHasWordWeights() {
+        int[] word = "ที่".codePoints().toArray();
+        double weight = 0;
+        for (ThaiTrie.PrefixMatch m : TRIE.prefixes(word, 0, word.length)) {
+            if (m.end == word.length) weight = m.weight;
+        }
+        assertTrue("ที่ should carry its word weight, got " + weight, weight > 1.0);
+    }
+
     public void testRepetitionMarkIsNotPartOfAnUnknownWord() {
         assertEquals(List.of("อื่น", "ๆ"), tok().tokenize("อื่นๆ", false));
         assertEquals(List.of("ใด", "ๆ"), tok().tokenize("ใดๆ", false));

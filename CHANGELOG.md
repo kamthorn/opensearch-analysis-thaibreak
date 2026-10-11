@@ -21,6 +21,15 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
   แพทย์ ตัว` join the list (43 words), as in thai-break, so `พี่เต๋อ` is `พี่|เต๋อ` and the name
   is tokenized the same with and without its title. Retrieval on the 483 LST20 test articles does
   not change; LST20 test word F1 with the bundled dictionary goes from 0.8368 to 0.8369.
+- **Word weights from thai-break:** the bundled `word-weights.tsv` (thai-break
+  `data/word-weights.tsv`) gives the 3,000 most frequent base words a weight counted on the
+  Prachathai-67k news corpus (Apache-2.0, see `NOTICE.txt`), replacing their weight in `words.txt`.
+  Until now every base word had the same weight, so an unknown name could swallow frequent words
+  next to it. LST20 test word F1 with the bundled dictionary goes from 0.8369 to 0.8414 (boundary
+  F1 0.9198 to 0.9228). In OpenSearch 3.9.0 on the 483 LST20 test articles, retrieval changes by
+  one query or two per group (person names 0.989 to 0.990 recall, organizations 0.980 to 0.977,
+  words 0.910 to 0.911), within noise. Output changes for some text, so indices built from it
+  should be reindexed.
 
 ## [v1.5.1] — 2026-10-05
 

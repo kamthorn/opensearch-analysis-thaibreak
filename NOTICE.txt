@@ -8,3 +8,7 @@ This project includes code derived from:
 
 - The bundled word list (words.txt) is derived from the thai-break project,
   Apache-2.0 License.
+
+- The bundled word weights (word-weights.tsv, from thai-break data/word-weights.tsv)
+  are word frequencies counted on Prachathai-67k
+  (https://huggingface.co/datasets/wannaphong/prachathai67k), Apache-2.0 License.

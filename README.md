@@ -9,7 +9,7 @@ OpenSearch Analysis Plugin for the Thai language — powered by the **Viterbi + 
 
 - **Deterministic** segmentation — no JRE locale/platform dependency (unlike the built-in `ThaiTokenizer` which relies on `java.text.BreakIterator`)
 - **Frequency-weighted** Viterbi shortest-path algorithm with TCC (Thai Character Cluster) constraints
-- **41,272-word** bundled dictionary with category weights (Apache-2.0)
+- **41,272-word** bundled dictionary with category weights and word frequencies counted on the Prachathai-67k news corpus (Apache-2.0, see [NOTICE.txt](NOTICE.txt))
 - **User dictionary** support — add domain-specific terms (medical, legal, brand names, etc.)
 - Mixed Thai/Latin/numeric content handled correctly
 - OOV (out-of-vocabulary) fallback: unknown words are preserved as single tokens
@@ -680,7 +680,7 @@ a boost.
 
 ## License
 
-Apache-2.0 — see [LICENSE.txt](LICENSE.txt).
+Apache-2.0 — see [LICENSE.txt](LICENSE.txt) and [NOTICE.txt](NOTICE.txt).
 
 Dictionary and core segmentation engine derived from [thai-break](https://github.com/kamthorn/thai-break) (Apache-2.0).
 
