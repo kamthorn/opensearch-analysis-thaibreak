@@ -179,6 +179,20 @@ public class ThaiViterbiTokenizerTests extends LuceneTestCase {
         assertTrue("ที่ should carry its word weight, got " + weight, weight > 1.0);
     }
 
+    public void testWordAndFullStopIsNotAnAbbreviation() {
+        // the full stop is a token of its own (the bundled dictionary may or may not have ต่อไป as a word)
+        for (String text : new String[]{"ต่อไป.", "หรือไม่.", "ได้."}) {
+            List<String> tokens = tok().tokenize(text, false);
+            assertEquals(tokens.toString(), ".", tokens.get(tokens.size() - 1));
+            assertEquals(text, String.join("", tokens));
+        }
+        assertEquals(List.of("ของ", "ส.ส."), tok().tokenize("ของส.ส.", false));
+        assertEquals(List.of("ของ", "พ.ต.ท."), tok().tokenize("ของพ.ต.ท.", false));
+        // real abbreviations stay whole
+        assertEquals(List.of("จ.", "เชียงใหม่"), tok().tokenize("จ.เชียงใหม่", false));
+        assertEquals(List.of("ก.พ."), tok().tokenize("ก.พ.", false));
+    }
+
     public void testRepetitionMarkIsNotPartOfAnUnknownWord() {
         assertEquals(List.of("อื่น", "ๆ"), tok().tokenize("อื่นๆ", false));
         assertEquals(List.of("ใด", "ๆ"), tok().tokenize("ใดๆ", false));

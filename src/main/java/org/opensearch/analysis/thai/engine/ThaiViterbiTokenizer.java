@@ -317,7 +317,7 @@ public final class ThaiViterbiTokenizer {
                     String mStr = abbrM.group();
                     int abbrCPs = mStr.codePointCount(0, mStr.length());
                     int j = i + abbrCPs;
-                    if (j <= n && validPos[j]) {
+                    if (j <= n && validPos[j] && !abbreviationIsWords(runes, j, mStr)) {
                         int dots   = countChar(mStr, '.');
                         int letters = abbrCPs - dots;
                         double cost = (ABBR_COST_FACTOR + ABBR_LETTER_COST_FACTOR * letters) * rareCost;
@@ -408,6 +408,32 @@ public final class ThaiViterbiTokenizer {
 
     private static boolean isThaiRune(int r) {
         return r >= 0x0E00 && r <= 0x0E7F;
+    }
+
+    /**
+     * Whether what the abbreviation pattern matched is really words and a full stop. The pattern
+     * accepts any one to four consonant letters before a full stop, and อ ว ย count as consonants,
+     * so it matches "ไป." in "ต่อไป." and "ของส." in "ของส.ส.". It is not an abbreviation when it
+     * starts with a function word followed by more letters ("ของส.ส." is ของ + ส.ส.), or when it is
+     * one dictionary word with a vowel or tone mark and a final full stop that is not followed by a
+     * letter ("ต่อไป."), unless the dictionary has the abbreviation itself. A string of consonants only
+     * (มทส. นพ.) stays an abbreviation even when the dictionary has it without the full stop.
+     *
+     * @param end index of the code point after the match
+     */
+    private boolean abbreviationIsWords(int[] runes, int end, String abbr) {
+        String first = abbr.substring(0, abbr.indexOf('.'));
+        for (String f : OOV_BOUNDARY_WORDS) {
+            if (first.length() > f.length() && first.startsWith(f)) return true;
+        }
+        boolean nextIsThai = end < runes.length && runes[end] >= 0x0E01 && runes[end] <= 0x0E5B;
+        return countChar(abbr, '.') == 1
+            && abbr.endsWith(".")
+            && first.codePointCount(0, first.length()) >= 2
+            && first.codePoints().anyMatch(c -> c < 'ก' || c > 'ฮ')
+            && !nextIsThai
+            && trie.contains(first)
+            && !trie.contains(abbr);
     }
 
     /** Whether {@code word} is longer than, and starts or ends with, a word of {@link #OOV_BOUNDARY_WORDS}. */
