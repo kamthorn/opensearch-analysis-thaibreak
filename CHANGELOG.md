@@ -7,6 +7,15 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ## [Unreleased]
 
+### Added
+
+- **A run of two or more spelled-out letters is one token** (`เอทีเอ็ม`, `ยูเอ็น`, `ดีเอสไอ`), as
+  in thai-break: the names of the letters of the Latin alphabet in Thai were cut into single
+  letters, so a query for `ดีเอสไอ` with the `and` operator matched any document with `ดี`, `เอส` and
+  `ไอ` in it. A single letter name stays a word. LST20 test word F1 with the bundled dictionary goes
+  from 0.8414 to 0.8441. Output changes for text with spelled-out letters, so indices built from
+  it should be reindexed.
+
 ### Fixed
 
 - **A word followed by a full stop is no longer read as an abbreviation**, as in thai-break: the

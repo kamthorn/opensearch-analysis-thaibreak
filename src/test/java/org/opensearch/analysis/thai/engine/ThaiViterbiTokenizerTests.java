@@ -179,6 +179,15 @@ public class ThaiViterbiTokenizerTests extends LuceneTestCase {
         assertTrue("ที่ should carry its word weight, got " + weight, weight > 1.0);
     }
 
+    public void testSpelledOutLettersAreOneToken() {
+        assertEquals(List.of("เอทีเอ็ม"), tok().tokenize("เอทีเอ็ม", false));
+        assertEquals(List.of("ดีเอสไอ"), tok().tokenize("ดีเอสไอ", false));
+        assertEquals(List.of("ยูเอ็น", "และ", "ไอที"), tok().tokenize("ยูเอ็นและไอที", false));
+        // a single letter name stays a word, and a tone mark keeps ที่ from being the letter T
+        assertEquals(List.of("ไอ"), tok().tokenize("ไอ", false));
+        assertEquals(List.of("ที่", "ดีเอสไอ"), tok().tokenize("ที่ดีเอสไอ", false));
+    }
+
     public void testWordAndFullStopIsNotAnAbbreviation() {
         // the full stop is a token of its own (the bundled dictionary may or may not have ต่อไป as a word)
         for (String text : new String[]{"ต่อไป.", "หรือไม่.", "ได้."}) {

@@ -41,6 +41,8 @@ import java.util.regex.Pattern;
 public final class ThaiViterbiTokenizer {
 
     // Cost multipliers (relative to rareCost = -log(1/totalWeight))
+    /** Cost of a run of two or more spelled-out letters (เอทีเอ็ม, ยูเอ็น). */
+    private static final double LETTER_RUN_COST_FACTOR  = 1.0;
     private static final double ABBR_COST_FACTOR        = 1.5;
     private static final double ABBR_LETTER_COST_FACTOR = 0.01;
     private static final double UNKNOWN_COST_FACTOR      = 2.0;
@@ -86,6 +88,15 @@ public final class ThaiViterbiTokenizer {
     private static final Pattern PAT_NON_THAI = Pattern.compile(
         "^(?:[a-zA-Z]+(?:[-_'][a-zA-Z0-9]+)*|\\d+(?:,\\d+)*(?:\\.\\d+)?%?|[ \\t]+|\\r?\\n|[^\\x{0E00}-\\x{0E7F}a-zA-Z0-9 \\t\\r\\n])"
     );
+    /**
+     * Names of the letters of the Latin alphabet in Thai, as code points. A name that starts another
+     * one comes first (เอ็ม before เอ), so the longest name wins.
+     */
+    private static final int[][] LETTER_NAMES = Arrays.stream(new String[] {
+        "ดับเบิลยู", "เอ็กซ์", "แอล", "เอ็ม", "เอ็น", "เอฟ", "เอช", "เอส", "อาร์", "คิว", "แซด", "ซี", "ดี", "จี", "ไอ", "เจ", "เค",
+        "โอ", "พี", "ยู", "วี", "วาย", "บี", "ที", "อี", "เอ",
+    }).map(n -> n.codePoints().toArray()).toArray(int[][]::new);
+
     private static final Pattern PAT_ABBR = Pattern.compile(
         "^(?:(?:[เแโใไ]?[ก-ฮ][ัิีึืุู็่้๊๋]?|[ก-ฮ]{1,4})\\.)++"
     );
@@ -325,7 +336,24 @@ public final class ThaiViterbiTokenizer {
                     }
                 }
 
-                // 3. Out-of-vocabulary words of 1..OOV_MAX_CLUSTERS TCC clusters
+                // 3. Runs of two or more spelled-out letters (เอทีเอ็ม, ยูเอ็น, ดีเอสไอ)
+                for (int end = i, letters = 0; ; ) {
+                    int next = 0;
+                    for (int[] name : LETTER_NAMES) {
+                        int e = end + name.length;
+                        if (e <= n && validPos[e] && Arrays.equals(runes, end, e, name, 0, name.length)) {
+                            next = e;
+                            break;
+                        }
+                    }
+                    if (next == 0) break;
+                    end = next;
+                    if (++letters >= 2) {
+                        relax(dp, from, word, isUnk, i, end, new String(runes, i, end - i), LETTER_RUN_COST_FACTOR * rareCost, false);
+                    }
+                }
+
+                // 4. Out-of-vocabulary words of 1..OOV_MAX_CLUSTERS TCC clusters
                 int clusters = 0;
                 for (int j = i + 1; j <= n && isOovRune(runes[j - 1]); j++) {
                     if (!validPos[j]) continue;
@@ -339,7 +367,7 @@ public final class ThaiViterbiTokenizer {
                     relax(dp, from, word, isUnk, i, j, oovWord, cost, true);
                 }
             } else {
-                // 4. Non-Thai token
+                // 5. Non-Thai token
                 Matcher nonThaiM = PAT_NON_THAI.matcher(subText);
                 if (nonThaiM.find()) {
                     String mStr = nonThaiM.group();
