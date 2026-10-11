@@ -179,6 +179,27 @@ public class ThaiViterbiTokenizerTests extends LuceneTestCase {
         assertTrue("ที่ should carry its word weight, got " + weight, weight > 1.0);
     }
 
+    public void testDictionaryWordsOfUpTo40CharactersAreMatched() {
+        // พระบาทสมเด็จพระเจ้าอยู่หัว has 26 characters; the Java engine takes the limit from the dictionary
+        String title = "พระบาทสมเด็จพระเจ้าอยู่หัว";
+        String long40 = "สมเด็จพระนางเจ้าสิริกิติ์พระบรมราชินีนาถ";
+        assertEquals(40, long40.codePointCount(0, long40.length()));
+        ThaiTrie trie = ThaiDictionaryLoader.loadDefault().copy();
+        trie.add(title, 4.0);
+        trie.add(long40, 4.0);
+        ThaiViterbiTokenizer custom = new ThaiViterbiTokenizer(trie);
+        assertEquals(List.of(title, "เสด็จ"), custom.tokenize(title + "เสด็จ", false));
+        assertEquals(List.of(long40, "เสด็จ"), custom.tokenize(long40 + "เสด็จ", false));
+    }
+
+    public void testRoyalVocabularyIsOneToken() {
+        // from thai-break-dict-extra data/royal: fixed royal terms are single tokens
+        assertEquals(List.of("พระชนมพรรษา"), tok().tokenize("พระชนมพรรษา", false));
+        assertEquals(List.of("พระบรมวงศานุวงศ์", "เสด็จ"), tok().tokenize("พระบรมวงศานุวงศ์เสด็จ", false));
+        assertEquals(List.of("สมเด็จพระเทพรัตนราชสุดา"), tok().tokenize("สมเด็จพระเทพรัตนราชสุดา", false));
+        assertEquals(List.of("พระบาทสมเด็จพระเจ้าอยู่หัว"), tok().tokenize("พระบาทสมเด็จพระเจ้าอยู่หัว", false));
+    }
+
     public void testSpelledOutLettersAreOneToken() {
         assertEquals(List.of("เอทีเอ็ม"), tok().tokenize("เอทีเอ็ม", false));
         assertEquals(List.of("ดีเอสไอ"), tok().tokenize("ดีเอสไอ", false));
