@@ -18,7 +18,11 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ### Changed
 
-- **LST20-derived entries removed from the bundled dictionary** (41,015 words now): the news compounds
+- **Bundled dictionary rebuilt as thai-break base plus dict-extra** (38,483 words): the loanwords harvested from
+  PyThaiNLP `th_en_transliteration` (CC BY 4.0, not CC0) are gone, and the subdistrict and district names use the
+  prefixed forms. The base words `ก๊อป` and `พระราชวัง` are back. Output changes for text with those loanwords, so
+  indices built from it should be reindexed.
+- **LST20-derived entries removed from the bundled dictionary**: the news compounds
   and connectives, the royal list, and the party and landmark names selected from the LST20 corpus are
   gone. The standard abbreviation lists (ranks, titles, addresses, units, months) are included. Output
   changes for text with those words, so indices built from it should be reindexed.

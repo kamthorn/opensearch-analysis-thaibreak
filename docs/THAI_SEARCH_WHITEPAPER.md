@@ -49,7 +49,7 @@ The segmentation quality is driven by a **41,763-entry** dictionary merged from 
 
 - Every entry carries an explicit frequency weight (uniform baseline `1.00`, category tiers up to `8.00`), feeding directly into $w(i, j)$ of the Viterbi recurrence.
 - Coverage includes general vocabulary, 5,827 subdistricts (ตำบล), slang/bigram corpora, and low-weight (`0.5`) dotless month abbreviations pinned so they cannot hijack ordinary text.
-- The dictionary is compiled into a **Directed Acyclic Word Graph (DAWG / minimal DFA)**: 336 KB, 41,017 states, loaded in sub-millisecond time — replacing flat prefix hash maps while keeping the weighted overlay parsed from the plain-text dictionary.
+- The dictionary is compiled into a **Directed Acyclic Word Graph (DAWG / minimal DFA)**: 310 KB, 37,888 states, loaded in sub-millisecond time — replacing flat prefix hash maps while keeping the weighted overlay parsed from the plain-text dictionary.
 
 ---
 
