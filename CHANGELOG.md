@@ -25,6 +25,17 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
   from 0.8414 to 0.8441. Output changes for text with spelled-out letters, so indices built from
   it should be reindexed.
 
+### Measured
+
+- Retrieval of the changes below (royal terms, spelled-out letters, abbreviations) on the 483 LST20
+  test articles in OpenSearch 3.9.0, against the build with the word weights: recall for 150
+  person-name queries stays 0.990, strict F1 of the 450 name queries goes from 0.845 to 0.846
+  (`none/none`) and of the 300 word queries from 0.817 to 0.820, with the layered query nothing
+  moves by more than 0.003. A rule that kept a name whole after a title (`นายสมชาย`) was tried and
+  not kept: LST20 word F1 rose by 0.3, but a name in a document came out as one token with its
+  surname after a title and as pieces in a query, and recall for person names fell from 0.990 to
+  0.889.
+
 ### Fixed
 
 - **A word followed by a full stop is no longer read as an abbreviation**, as in thai-break: the
