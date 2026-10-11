@@ -24,7 +24,7 @@ import java.nio.charset.StandardCharsets;
  * Loader for the bundled Thai dictionary and for user-supplied dictionaries.
  *
  * <p>The default dictionary is the {@code words.txt} resource bundled inside
- * this JAR (40,913 words with category weights, Apache-2.0, from the {@code thai-break}
+ * this JAR (41,015 words with category weights, Apache-2.0, from the {@code thai-break}
  * and {@code thai-break-dict-extra} projects), with the word weights of thai-break
  * ({@code word-weights.tsv}) replacing the weights of the words they list. User dictionaries follow the same
  * TSV format: one word per line, with an optional tab-separated weight.

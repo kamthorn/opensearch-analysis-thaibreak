@@ -18,10 +18,10 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ### Changed
 
-- **421 entries removed from the bundled dictionary** (40,913 words now): the news compounds and
-  connectives, the abbreviation files added after the last merge, the royal list, and the party and
-  landmark names that thai-break-dict-extra selected from the LST20 corpus. Output changes for text
-  with those words, so indices built from it should be reindexed.
+- **LST20-derived entries removed from the bundled dictionary** (41,015 words now): the news compounds
+  and connectives, the royal list, and the party and landmark names selected from the LST20 corpus are
+  gone. The standard abbreviation lists (ranks, titles, addresses, units, months) are included. Output
+  changes for text with those words, so indices built from it should be reindexed.
 
 ### Measured
 
