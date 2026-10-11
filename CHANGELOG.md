@@ -17,6 +17,10 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
   LST20 test articles, recall for 150 person-name queries goes from 0.986 to 0.989 with no other
   query group changing, and LST20 test word F1 with the bundled dictionary from 0.8364 to 0.8368.
   Output changes for text with unknown words, so indices built from it should be reindexed.
+- **An out-of-vocabulary word may not swallow a title before a name either:** `นาย นาง พี่ น้อง
+  แพทย์ ตัว` join the list (43 words), as in thai-break, so `พี่เต๋อ` is `พี่|เต๋อ` and the name
+  is tokenized the same with and without its title. Retrieval on the 483 LST20 test articles does
+  not change; LST20 test word F1 with the bundled dictionary goes from 0.8368 to 0.8369.
 
 ## [v1.5.1] — 2026-10-05
 

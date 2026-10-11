@@ -165,6 +165,11 @@ public class ThaiViterbiTokenizerTests extends LuceneTestCase {
         assertEquals("อาห์มาดิเนจัด", tok().tokenize("อาห์มาดิเนจัดกล่าวว่า", false).get(0));
     }
 
+    public void testUnknownWordDoesNotSwallowTitle() {
+        // เต๋อ is not a dictionary word; it used to merge with the title before it
+        assertEquals(List.of("พี่", "เต๋อ", "มา", "แล้ว"), tok().tokenize("พี่เต๋อมาแล้ว", false));
+    }
+
     public void testRepetitionMarkIsNotPartOfAnUnknownWord() {
         assertEquals(List.of("อื่น", "ๆ"), tok().tokenize("อื่นๆ", false));
         assertEquals(List.of("ใด", "ๆ"), tok().tokenize("ใดๆ", false));

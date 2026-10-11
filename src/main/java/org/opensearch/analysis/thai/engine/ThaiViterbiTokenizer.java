@@ -71,6 +71,8 @@ public final class ThaiViterbiTokenizer {
         "โดย", "เพื่อ", "แล้ว", "อยู่", "นี้", "นั้น", "ซึ่ง", "การ", "ความ",
         "ต่อ", "ถึง", "ยัง", "เมื่อ", "ทั้ง", "ตาม", "ด้วย", "อีก", "คือ",
         "ไว้",
+        // words that often come right before a name
+        "นาย", "นาง", "พี่", "น้อง", "แพทย์", "ตัว",
     };
     /**
      * The function words that may not occur inside an out-of-vocabulary word, as code points. มา and
