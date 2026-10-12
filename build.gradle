@@ -69,6 +69,7 @@ tasks.named('forbiddenApisTest').configure {
 forbiddenPatterns {
     exclude '**/words.txt'
     exclude '**/words.dawg'
+    exclude '**/word-weights.tsv'
     exclude '**/acronyms.txt'
     exclude '**/romanizations.txt'
 }
