@@ -7,7 +7,7 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ## [Unreleased]
 
-## [v1.6.0] — 2026-10-12
+## [v1.6.1] — 2026-10-12
 
 ### Added
 
