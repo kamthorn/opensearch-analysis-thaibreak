@@ -7,6 +7,8 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ## [Unreleased]
 
+## [v1.6.2] — 2026-10-16
+
 ### Changed
 
 - **Faster tokenizer, same tokens.** The segmenter copied the rest of the text at every position (in
