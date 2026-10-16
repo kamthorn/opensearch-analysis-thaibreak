@@ -15,6 +15,7 @@ package org.opensearch.analysis.thai.engine;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -76,14 +77,38 @@ public final class ThaiViterbiTokenizer {
         // words that often come right before a name
         "นาย", "นาง", "พี่", "น้อง", "แพทย์", "ตัว",
     };
-    /**
-     * The function words that may not occur inside an out-of-vocabulary word, as code points. มา and
-     * มี may: they are frequent syllables of transliterated names (อาห์มาดิเนจัด, อะมีรุ้ลฮัจย์).
-     */
-    private static final int[][] OOV_INNER_FUNCTION_WORDS = Arrays.stream(OOV_BOUNDARY_WORDS)
-        .filter(f -> !f.equals("มา") && !f.equals("มี"))
+    /** Bit k of a function-word mask stands for OOV_BOUNDARY_WORDS[k]. */
+    private static final int[][] FW_RUNES = Arrays.stream(OOV_BOUNDARY_WORDS)
         .map(f -> f.codePoints().toArray())
         .toArray(int[][]::new);
+    /** Length of each function word in UTF-16 code units (Thai words are in the BMP). */
+    private static final int[] FW_UTF16_LEN = Arrays.stream(OOV_BOUNDARY_WORDS).mapToInt(String::length).toArray();
+    /**
+     * The mask of the function words that may not occur inside an out-of-vocabulary word. มา and มี
+     * may: they are frequent syllables of transliterated names (อาห์มาดิเนจัด, อะมีรุ้ลฮัจย์).
+     */
+    private static final long FW_INNER = innerMask();
+    /** Indexes of the function words by first code point, as an offset from U+0E00. */
+    private static final int[][] FW_BY_FIRST = byFirst();
+
+    private static long innerMask() {
+        long mask = 0;
+        for (int k = 0; k < OOV_BOUNDARY_WORDS.length; k++) {
+            String f = OOV_BOUNDARY_WORDS[k];
+            if (!f.equals("มา") && !f.equals("มี")) mask |= 1L << k;
+        }
+        return mask;
+    }
+
+    private static int[][] byFirst() {
+        int[][] out = new int[0x80][0];
+        for (int k = 0; k < FW_RUNES.length; k++) {
+            int c = FW_RUNES[k][0] - 0x0E00;
+            out[c] = Arrays.copyOf(out[c], out[c].length + 1);
+            out[c][out[c].length - 1] = k;
+        }
+        return out;
+    }
 
     private static final Pattern PAT_NON_THAI = Pattern.compile(
         "^(?:[a-zA-Z]+(?:[-_'][a-zA-Z0-9]+)*|\\d+(?:,\\d+)*(?:\\.\\d+)?%?|[ \\t]+|\\r?\\n|[^\\x{0E00}-\\x{0E7F}a-zA-Z0-9 \\t\\r\\n])"
@@ -96,6 +121,19 @@ public final class ThaiViterbiTokenizer {
         "ดับเบิลยู", "เอ็กซ์", "แอล", "เอ็ม", "เอ็น", "เอฟ", "เอช", "เอส", "อาร์", "คิว", "แซด", "ซี", "ดี", "จี", "ไอ", "เจ", "เค",
         "โอ", "พี", "ยู", "วี", "วาย", "บี", "ที", "อี", "เอ",
     }).map(n -> n.codePoints().toArray()).toArray(int[][]::new);
+
+    /** LETTER_NAMES by first code point, as an offset from U+0E00, in LETTER_NAMES order. */
+    private static final int[][][] LETTER_NAMES_BY_FIRST = letterNamesByFirst();
+
+    private static int[][][] letterNamesByFirst() {
+        int[][][] out = new int[0x80][0][];
+        for (int[] name : LETTER_NAMES) {
+            int c = name[0] - 0x0E00;
+            out[c] = Arrays.copyOf(out[c], out[c].length + 1);
+            out[c][out[c].length - 1] = name;
+        }
+        return out;
+    }
 
     private static final Pattern PAT_ABBR = Pattern.compile(
         "^(?:(?:[เแโใไ]?[ก-ฮ][ัิีึืุู็่้๊๋]?|[ก-ฮ]{1,4})\\.)++"
@@ -260,14 +298,17 @@ public final class ThaiViterbiTokenizer {
         }
     }
 
-    /** Viterbi DP segmentation. */
+    /**
+     * Viterbi DP segmentation. Every edge into j covers {@code runes[from[j]..j)}, so the DP keeps no
+     * word and the tokens are cut out at the end.
+     */
     private List<String> segment(int[] runes) {
         int n = runes.length;
         if (n == 0) return List.of();
 
         boolean[] validPos = ThaiTCC.validPositions(runes);
 
-        // Build string + per-rune start indices (for regex on substring)
+        // Build string + per-rune start indices (for regex on a region of the text)
         StringBuilder sbFull = new StringBuilder();
         int[] runeStart = new int[n + 1]; // runeStart[i] = char offset of rune i
         for (int i = 0; i < n; i++) {
@@ -277,16 +318,35 @@ public final class ThaiViterbiTokenizer {
         runeStart[n] = sbFull.length();
         String text = sbFull.toString();
 
+        // Bit k of fwStarts[p] is set when OOV_BOUNDARY_WORDS[k] begins at rune p, and bit k of
+        // fwEnds[p] when it ends there
+        long[] fwStarts = new long[n + 1];
+        long[] fwEnds = new long[n + 1];
+        for (int p = 0; p < n; p++) {
+            int r = runes[p];
+            if (r < 0x0E00 || r > 0x0E7F) continue;
+            for (int k : FW_BY_FIRST[r - 0x0E00]) {
+                int[] f = FW_RUNES[k];
+                int e = p + f.length;
+                if (e <= n && Arrays.equals(runes, p, e, f, 0, f.length)) {
+                    fwStarts[p] |= 1L << k;
+                    fwEnds[e] |= 1L << k;
+                }
+            }
+        }
+
         double normalizer = trie.totalWeight() + 1.0;
         double rareCost   = Math.log(normalizer);
 
         double[] dp    = new double[n + 1];
         int[]    from  = new int[n + 1];
-        String[] word  = new String[n + 1];
         boolean[] isUnk = new boolean[n + 1];
         Arrays.fill(dp, Double.POSITIVE_INFINITY);
         Arrays.fill(from, -1);
         dp[0] = 0.0;
+
+        Matcher abbrM = PAT_ABBR.matcher(text);
+        Matcher nonThaiM = PAT_NON_THAI.matcher(text);
 
         for (int i = 0; i <= n; i++) {
             if (!validPos[i]) continue;
@@ -297,7 +357,6 @@ public final class ThaiViterbiTokenizer {
                     if (!Double.isInfinite(dp[k]) && validPos[k]) {
                         dp[i]   = dp[k] + UNKNOWN_COST_FACTOR * rareCost;
                         from[i] = k;
-                        word[i] = new String(runes, k, i - k);
                         isUnk[i] = true;
                         break;
                     }
@@ -308,7 +367,6 @@ public final class ThaiViterbiTokenizer {
 
             // ---- Collect outgoing edges ----
             int rune0 = runes[i];
-            String subText = text.substring(runeStart[i]);
 
             if (isThaiRune(rune0)) {
                 // 1. Dictionary words (scan window follows the longest entry,
@@ -317,14 +375,19 @@ public final class ThaiViterbiTokenizer {
                     int j = m.end;
                     if (j <= n && validPos[j]) {
                         double cost = Math.log(normalizer / m.weight);
-                        relax(dp, from, word, isUnk, i, j,
-                              new String(runes, i, j - i), cost, false);
+                        relax(dp, from, isUnk, i, j, cost, false);
                     }
                 }
 
-                // 2. Abbreviation patterns
-                Matcher abbrM = PAT_ABBR.matcher(subText);
-                if (abbrM.find()) {
+                // 2. Abbreviation patterns (the pattern needs a full stop within four runes)
+                boolean dot = false;
+                for (int t = i + 1, tEnd = Math.min(i + 4, n - 1); t <= tEnd; t++) {
+                    if (runes[t] == '.') {
+                        dot = true;
+                        break;
+                    }
+                }
+                if (dot && abbrM.region(runeStart[i], text.length()).lookingAt()) {
                     String mStr = abbrM.group();
                     int abbrCPs = mStr.codePointCount(0, mStr.length());
                     int j = i + abbrCPs;
@@ -332,48 +395,66 @@ public final class ThaiViterbiTokenizer {
                         int dots   = countChar(mStr, '.');
                         int letters = abbrCPs - dots;
                         double cost = (ABBR_COST_FACTOR + ABBR_LETTER_COST_FACTOR * letters) * rareCost;
-                        relax(dp, from, word, isUnk, i, j, mStr, cost, false);
+                        relax(dp, from, isUnk, i, j, cost, false);
                     }
                 }
 
                 // 3. Runs of two or more spelled-out letters (เอทีเอ็ม, ยูเอ็น, ดีเอสไอ)
                 for (int end = i, letters = 0; ; ) {
                     int next = 0;
-                    for (int[] name : LETTER_NAMES) {
-                        int e = end + name.length;
-                        if (e <= n && validPos[e] && Arrays.equals(runes, end, e, name, 0, name.length)) {
-                            next = e;
-                            break;
+                    if (end < n && runes[end] >= 0x0E00 && runes[end] <= 0x0E7F) {
+                        for (int[] name : LETTER_NAMES_BY_FIRST[runes[end] - 0x0E00]) {
+                            int e = end + name.length;
+                            if (e <= n && validPos[e] && Arrays.equals(runes, end, e, name, 0, name.length)) {
+                                next = e;
+                                break;
+                            }
                         }
                     }
                     if (next == 0) break;
                     end = next;
                     if (++letters >= 2) {
-                        relax(dp, from, word, isUnk, i, end, new String(runes, i, end - i), LETTER_RUN_COST_FACTOR * rareCost, false);
+                        relax(dp, from, isUnk, i, end, LETTER_RUN_COST_FACTOR * rareCost, false);
                     }
                 }
 
                 // 4. Out-of-vocabulary words of 1..OOV_MAX_CLUSTERS TCC clusters
                 int clusters = 0;
+                long startsHere = fwStarts[i];
+                oov:
                 for (int j = i + 1; j <= n && isOovRune(runes[j - 1]); j++) {
                     if (!validPos[j]) continue;
                     if (++clusters > OOV_MAX_CLUSTERS) break;
-                    String oovWord = new String(runes, i, j - i);
-                    if (bordersFunctionWord(oovWord)) {
-                        if (endsWithInnerFunctionWord(runes, i, j, validPos)) break;
-                        continue;
+                    long hits = startsHere | fwEnds[j];
+                    if (hits != 0) {
+                        // The edge borders a function word that is shorter than the edge
+                        int edgeLen = runeStart[j] - runeStart[i];
+                        boolean borders = false;
+                        for (long h = hits; h != 0; h &= h - 1) {
+                            if (edgeLen > FW_UTF16_LEN[Long.numberOfTrailingZeros(h)]) {
+                                borders = true;
+                                break;
+                            }
+                        }
+                        if (borders) {
+                            // Every longer edge from i would contain a function word that ends here
+                            for (long h = fwEnds[j] & FW_INNER; h != 0; h &= h - 1) {
+                                int len = FW_RUNES[Long.numberOfTrailingZeros(h)].length;
+                                if (j - i > len && validPos[j - len]) break oov;
+                            }
+                            continue;
+                        }
                     }
                     double cost = (OOV_COST_FACTOR + OOV_CLUSTER_COST_FACTOR * (clusters - 1)) * rareCost;
-                    relax(dp, from, word, isUnk, i, j, oovWord, cost, true);
+                    relax(dp, from, isUnk, i, j, cost, true);
                 }
             } else {
                 // 5. Non-Thai token
-                Matcher nonThaiM = PAT_NON_THAI.matcher(subText);
-                if (nonThaiM.find()) {
+                if (nonThaiM.region(runeStart[i], text.length()).lookingAt()) {
                     String mStr = nonThaiM.group();
                     int j = i + mStr.codePointCount(0, mStr.length());
                     if (j <= n && validPos[j]) {
-                        relax(dp, from, word, isUnk, i, j, mStr, rareCost, false);
+                        relax(dp, from, isUnk, i, j, rareCost, false);
                     }
                 }
             }
@@ -385,30 +466,21 @@ public final class ThaiViterbiTokenizer {
         }
 
         // Traceback
-        List<String> rawTokens = new ArrayList<>();
-        List<Boolean> rawIsUnk = new ArrayList<>();
+        List<int[]> spans = new ArrayList<>();
         int pos = n;
         while (pos > 0) {
-            rawTokens.add(word[pos]);
-            rawIsUnk.add(isUnk[pos]);
+            spans.add(new int[] {from[pos], pos, isUnk[pos] ? 1 : 0});
             pos = from[pos];
             if (pos < 0) break;
         }
-
-        // Reverse
-        int lo = 0, hi = rawTokens.size() - 1;
-        while (lo < hi) {
-            String tmp = rawTokens.get(lo); rawTokens.set(lo, rawTokens.get(hi)); rawTokens.set(hi, tmp);
-            boolean bmp = rawIsUnk.get(lo); rawIsUnk.set(lo, rawIsUnk.get(hi)); rawIsUnk.set(hi, bmp);
-            lo++; hi--;
-        }
+        Collections.reverse(spans);
 
         // Merge consecutive unknown Thai tokens into OOV chunks
         List<String> result = new ArrayList<>();
         StringBuilder curChunk = new StringBuilder();
-        for (int idx = 0; idx < rawTokens.size(); idx++) {
-            String tok = rawTokens.get(idx);
-            if (rawIsUnk.get(idx) && isThaiString(tok)) {
+        for (int[] span : spans) {
+            String tok = new String(runes, span[0], span[1] - span[0]);
+            if (span[2] == 1 && isThaiString(tok)) {
                 curChunk.append(tok);
             } else {
                 if (curChunk.length() > 0) {
@@ -423,13 +495,12 @@ public final class ThaiViterbiTokenizer {
         return result;
     }
 
-    private static void relax(double[] dp, int[] from, String[] word, boolean[] isUnk,
-                               int src, int dst, String w, double cost, boolean unk) {
+    private static void relax(double[] dp, int[] from, boolean[] isUnk,
+                               int src, int dst, double cost, boolean unk) {
         double newCost = dp[src] + cost;
         if (newCost <= dp[dst] + TIE_EPSILON) {
             dp[dst]   = newCost;
             from[dst] = src;
-            word[dst] = w;
             isUnk[dst] = unk;
         }
     }
@@ -462,27 +533,6 @@ public final class ThaiViterbiTokenizer {
             && !nextIsThai
             && trie.contains(first)
             && !trie.contains(abbr);
-    }
-
-    /** Whether {@code word} is longer than, and starts or ends with, a word of {@link #OOV_BOUNDARY_WORDS}. */
-    private static boolean bordersFunctionWord(String word) {
-        for (String f : OOV_BOUNDARY_WORDS) {
-            if (word.length() > f.length() && (word.startsWith(f) || word.endsWith(f))) return true;
-        }
-        return false;
-    }
-
-    /**
-     * Whether {@code runes[start, end)} ends with a word of {@link #OOV_INNER_FUNCTION_WORDS} that starts
-     * at a cluster boundary after {@code start}. Every longer out-of-vocabulary edge from {@code start}
-     * would contain that word.
-     */
-    private static boolean endsWithInnerFunctionWord(int[] runes, int start, int end, boolean[] validPos) {
-        for (int[] f : OOV_INNER_FUNCTION_WORDS) {
-            int k = end - f.length;
-            if (k > start && validPos[k] && Arrays.equals(runes, k, end, f, 0, f.length)) return true;
-        }
-        return false;
     }
 
     /**

@@ -133,27 +133,27 @@ public final class ThaiTCC {
         int bytePos = 0;
         int textLen = text.length();
 
-        while (bytePos < textLen) {
-            String sub = text.substring(bytePos);
+        // The patterns are anchored, so matching a region of the text finds what a match on the rest of
+        // the text would, without copying it
+        Matcher lookahead = TCC_LOOKAHEAD.matcher(text);
+        Matcher general = TCC_GENERAL.matcher(text);
 
-            // 1. Try lookahead rules first
-            Matcher lookahead = TCC_LOOKAHEAD.matcher(sub);
-            if (lookahead.find()) {
-                int matchLen = lookahead.end();
-                String rest = sub.substring(matchLen);
-                if (isFollowedByLookaheadChar(rest)) {
-                    bytePos += matchLen;
+        while (bytePos < textLen) {
+            // 1. Try lookahead rules first (all of them start with เ)
+            if (text.charAt(bytePos) == 'เ' && lookahead.region(bytePos, textLen).lookingAt()) {
+                int next = lookahead.end();
+                if (isFollowedByLookaheadChar(next < textLen ? text.codePointAt(next) : -1)) {
+                    bytePos = next;
                     valid[byteToRune[bytePos]] = true;
                     continue;
                 }
             }
 
             // 2. Try general rules
-            Matcher general = TCC_GENERAL.matcher(sub);
-            if (general.find()) {
-                String matched = sub.substring(0, general.end());
-                String rest = sub.substring(general.end());
-                int clusterBytes = clusterLen(matched, rest);
+            if (general.region(bytePos, textLen).lookingAt()) {
+                int next = general.end();
+                String matched = text.substring(bytePos, next);
+                int clusterBytes = clusterLen(matched, next < textLen ? text.codePointAt(next) : -1);
                 bytePos += clusterBytes;
                 valid[byteToRune[bytePos]] = true;
             } else {
@@ -185,10 +185,9 @@ public final class ThaiTCC {
         return valid;
     }
 
-    /** Whether the first rune of {@code rest} can follow a diphthong ending. */
-    private static boolean isFollowedByLookaheadChar(String rest) {
-        if (rest.isEmpty()) return true;
-        int r = rest.codePointAt(0);
+    /** Whether the code point {@code r} (-1 at the end of the text) can follow a diphthong ending. */
+    private static boolean isFollowedByLookaheadChar(int r) {
+        if (r < 0) return true;
         // Base consonants ก-ฮ or leading vowels เ-ไ
         if ((r >= 0x0E01 && r <= 0x0E2E) || (r >= 0x0E40 && r <= 0x0E44)) return true;
         // Non-Thai
@@ -201,12 +200,11 @@ public final class ThaiTCC {
      * dependent vowel/mark (that consonant begins the next cluster).
      * Exception: ว before ะ stays (it's part of -ัวะ).
      */
-    private static int clusterLen(String matched, String rest) {
+    private static int clusterLen(String matched, int nextCp) {
         if (matched.length() <= 1) return matched.length();
         int lastCp = matched.codePointBefore(matched.length());
         int lastSize = Character.charCount(lastCp);
-        if (rest.isEmpty()) return matched.length();
-        int nextCp = rest.codePointAt(0);
+        if (nextCp < 0) return matched.length();
         // final consonant (ก-ฮ) followed by dependent mark → back off
         if (lastCp >= 'ก' && lastCp <= 'ฮ'
                 && Character.codePointCount(matched, 0, matched.length()) > 1
