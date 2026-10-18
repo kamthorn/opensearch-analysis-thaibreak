@@ -7,6 +7,13 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ## [Unreleased]
 
+### Changed
+
+- **Faster TCC step, same tokens.** Thai character clusters are matched with a DFA generated from the
+  cluster rules of the thai-break core (`ThaiTccDfa`) instead of `java.util.regex`, which took about 40%
+  of the tokenizer's time. Tokenizing news text is about 1.6x faster. The tokens are identical, so no
+  reindex is needed.
+
 ## [v1.6.2] — 2026-10-16
 
 ### Changed
