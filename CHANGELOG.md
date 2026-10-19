@@ -7,16 +7,30 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ## [Unreleased]
 
+## [v1.7.0] — 2026-10-19
+
 ### Changed
 
-- **Faster TCC step, same tokens.** Thai character clusters are matched with a DFA generated from the
-  cluster rules of the thai-break core (`ThaiTccDfa`) instead of `java.util.regex`, which took about 40%
-  of the tokenizer's time. Tokenizing news text is about 1.6x faster. The tokens are identical, so no
-  reindex is needed.
-- **Align segmentation rules with thai-break.**
+- **The segmentation rules follow thai-break 1.5.0, so some tokens change: reindex fields analyzed with
+  `thaibreak`.**
   - Closed `-็อ-` syllables (`ต็อด`, `ล็อก`, `ม็อบ`) stay a single TCC cluster.
-  - Improved segmentation of words before abbreviations: common words (`พบพล.อ.`), `cอc` words before `จ.` or multi-dot abbreviations (`รอยพ.ต.ท.`), and words like `นายกอบต.`.
-  - Titles (`นาย`, `หมอ`) no longer steal the initial `ก` of following names (`นายกษิต` -> `นาย|กษิต`, `หมอกฤษฏ์` -> `หมอ|กฤษฏ์`).
+  - Words before abbreviations: a common word (`พบพล.อ.`), a `cอc` word before `จ.` or a multi-dot
+    abbreviation, or a title is no longer swallowed by the abbreviation.
+  - `นาย` and `หมอ` no longer take the initial `ก` of the name after them (`นายกษิต` is `นาย|กษิต`).
+  - The generated TCC tables (`ThaiTccDfa`) equal the ones the thai-break core builds from its rules.
+- **52 more words in the bundled dictionary** (38,483 to 38,535), the ones thai-break and dict-extra added
+  since v1.6.2: compounds such as `ค้นคว้า`, `ค้นหา`, `สวยงาม`, `พูดคุย`, `เติบโต`, `ตัดสินใจ`, `ค่อนข้าง`,
+  `แกนนำ`, `ยาบ้า`, plus `เรอะ` and `เสธ.`. `ค้าขาย` has weight 1.0 so that it does not take `ค้า` from
+  `แม่ค้า`. The weights of the old words are unchanged.
+- **Faster TCC step.** Thai character clusters are matched with a DFA generated from the cluster rules of
+  the thai-break core instead of `java.util.regex`, which took about 40% of the tokenizer's time.
+  Tokenizing news text is about 1.6x faster.
+
+### Fixed
+
+- **A word in a user dictionary no longer hides the dictionary word that is its prefix.** After adding a
+  user word such as `ไปตำ`, `ไป` was no longer a dictionary word for the abbreviation check, so the full stop
+  of `ต่อไป.` was read as part of an abbreviation (`ต่อ|ไป.`). It is `ต่อ|ไป|.` again.
 
 ## [v1.6.2] — 2026-10-16
 

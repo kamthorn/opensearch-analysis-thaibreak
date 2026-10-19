@@ -345,8 +345,10 @@ public final class ThaiTrie {
     public boolean contains(String word) {
         if (word == null || word.isEmpty()) return false;
         if (overlay != null && !overlay.isEmpty()) {
+            // An overlay entry of weight 0 only marks a prefix of an added word ("ไป" for "ไปตำ"):
+            // the word itself may still be in the DAWG
             Double w = overlay.get(word);
-            if (w != null) return w > 0.0;
+            if (w != null && w > 0.0) return true;
         }
         if (dawg != null) {
             return dawg.contains(word);

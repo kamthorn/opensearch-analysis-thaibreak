@@ -201,6 +201,20 @@ public class ThaiViterbiTokenizerTests extends LuceneTestCase {
         assertEquals(List.of("ที่", "ดีเอสไอ"), tok().tokenize("ที่ดีเอสไอ", false));
     }
 
+    public void testPrefixOfAUserWordIsStillADictionaryWord() {
+        // Adding "ไปตำ" marks "ไป" as a prefix in the overlay; "ไป" must stay a word, or the full stop
+        // in "ต่อไป." is taken for an abbreviation
+        ThaiTrie withUserWord = ThaiDictionaryLoader.loadDefault().copy();
+        assertTrue(withUserWord.contains("ไป"));
+        withUserWord.add("ไปตำ", 5.0);
+        assertTrue("a prefix marker hides a dictionary word", withUserWord.contains("ไป"));
+        assertTrue(withUserWord.contains("ไปตำ"));
+        assertFalse("a prefix that is no word is not a word", withUserWord.contains("ไปต"));
+        List<String> tokens = new ThaiViterbiTokenizer(withUserWord).tokenize("ต่อไป.", false);
+        assertEquals(tokens.toString(), ".", tokens.get(tokens.size() - 1));
+        assertEquals("ต่อไป.", String.join("", tokens));
+    }
+
     public void testWordAndFullStopIsNotAnAbbreviation() {
         // the full stop is a token of its own (the bundled dictionary may or may not have ต่อไป as a word)
         for (String text : new String[]{"ต่อไป.", "หรือไม่.", "ได้."}) {
