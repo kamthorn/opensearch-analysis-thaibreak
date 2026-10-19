@@ -215,6 +215,17 @@ public class ThaiViterbiTokenizerTests extends LuceneTestCase {
         assertEquals(List.of("ก.พ."), tok().tokenize("ก.พ.", false));
     }
 
+    public void testAbbreviationAndTitleAndClosedMaiTaikhuRules() {
+        assertEquals(List.of("พบ", "พล.อ.", "ประยุทธ์"), tok().tokenize("พบพล.อ.ประยุทธ์", false));
+        assertEquals(List.of("คุณ", "ต็อด", "เล่น", "ติ๊กต็อก"), tok().tokenize("คุณต็อดเล่นติ๊กต็อก", false));
+        assertEquals(List.of("เขา", "ก็", "อดทน"), tok().tokenize("เขาก็อดทน", false));
+        assertEquals(List.of("นาย", "กษิต", "กล่าว", "ว่า"), tok().tokenize("นายกษิตกล่าวว่า", false));
+        assertEquals(List.of("หมอ", "กฤษฏ์", "คอนเฟิร์ม"), tok().tokenize("หมอกฤษฏ์คอนเฟิร์ม", false));
+        assertEquals(List.of("นายก", "อบต."), tok().tokenize("นายกอบต.", false));
+        assertEquals(List.of("เดิน", "ตาม", "รอย", "พ.ต.ท.", "ทักษิณ"), tok().tokenize("เดินตามรอยพ.ต.ท.ทักษิณ", false));
+        assertEquals(List.of("ไฟฟ้า", "น้ำพอง", "จ.", "ขอนแก่น"), tok().tokenize("ไฟฟ้าน้ำพองจ.ขอนแก่น", false));
+    }
+
     public void testRepetitionMarkIsNotPartOfAnUnknownWord() {
         assertEquals(List.of("อื่น", "ๆ"), tok().tokenize("อื่นๆ", false));
         assertEquals(List.of("ใด", "ๆ"), tok().tokenize("ใดๆ", false));

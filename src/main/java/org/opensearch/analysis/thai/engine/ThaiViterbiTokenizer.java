@@ -371,7 +371,8 @@ public final class ThaiViterbiTokenizer {
             if (isThaiRune(rune0)) {
                 // 1. Dictionary words (scan window follows the longest entry,
                 //    so long user-dictionary words stay matchable)
-                for (ThaiTrie.PrefixMatch m : trie.prefixes(runes, i, trie.maxWordLength())) {
+                List<ThaiTrie.PrefixMatch> prefixes = trie.prefixes(runes, i, trie.maxWordLength());
+                for (ThaiTrie.PrefixMatch m : prefixes) {
                     int j = m.end;
                     if (j <= n && validPos[j]) {
                         double cost = Math.log(normalizer / m.weight);
@@ -391,7 +392,7 @@ public final class ThaiViterbiTokenizer {
                     String mStr = abbrM.group();
                     int abbrCPs = mStr.codePointCount(0, mStr.length());
                     int j = i + abbrCPs;
-                    if (j <= n && validPos[j] && !abbreviationIsWords(runes, j, mStr)) {
+                    if (j <= n && validPos[j] && !abbreviationIsWords(runes, i, j, mStr, prefixes)) {
                         int dots   = countChar(mStr, '.');
                         int letters = abbrCPs - dots;
                         double cost = (ABBR_COST_FACTOR + ABBR_LETTER_COST_FACTOR * letters) * rareCost;
@@ -418,11 +419,17 @@ public final class ThaiViterbiTokenizer {
                     }
                 }
 
-                // 4. Out-of-vocabulary words of 1..OOV_MAX_CLUSTERS TCC clusters
+                // 4. Out-of-vocabulary words of 1..OOV_MAX_CLUSTERS TCC clusters.
+                // Do not start an OOV edge right after "นายก" or "หมอก" ("นาย"/"หมอ" + 'ก'), so the
+                // title does not steal the initial 'ก' of a following name ("นาย|กษิต", "หมอ|กฤษฏ์").
+                boolean stoleTitleK = from[i] >= 0 && from[i] + 4 == i &&
+                    runes[i - 1] == 'ก' &&
+                    ((runes[i - 4] == 'น' && runes[i - 3] == 'า' && runes[i - 2] == 'ย') ||
+                     (runes[i - 4] == 'ห' && runes[i - 3] == 'ม' && runes[i - 2] == 'อ'));
                 int clusters = 0;
                 long startsHere = fwStarts[i];
                 oov:
-                for (int j = i + 1; j <= n && isOovRune(runes[j - 1]); j++) {
+                for (int j = i + 1; !stoleTitleK && j <= n && isOovRune(runes[j - 1]); j++) {
                     if (!validPos[j]) continue;
                     if (++clusters > OOV_MAX_CLUSTERS) break;
                     long hits = startsHere | fwEnds[j];
@@ -512,27 +519,105 @@ public final class ThaiViterbiTokenizer {
     /**
      * Whether what the abbreviation pattern matched is really words and a full stop. The pattern
      * accepts any one to four consonant letters before a full stop, and อ ว ย count as consonants,
-     * so it matches "ไป." in "ต่อไป." and "ของส." in "ของส.ส.". It is not an abbreviation when it
-     * starts with a function word followed by more letters ("ของส.ส." is ของ + ส.ส.), or when it is
-     * one dictionary word with a vowel or tone mark and a final full stop that is not followed by a
-     * letter ("ต่อไป."), unless the dictionary has the abbreviation itself. A string of consonants only
-     * (มทส. นพ.) stays an abbreviation even when the dictionary has it without the full stop.
+     * so it matches "ไป." in "ต่อไป." and "ของส." in "ของส.ส.". It is not an abbreviation when
+     * - it starts with a function word or common word followed by more letters ("ของส.ส." is ของ +
+     *   ส.ส., "พบพล.อ." is พบ + พล.อ.), or
+     * - it is one dictionary word with a vowel or tone mark and a final full stop that is not followed
+     *   by a letter ("ต่อไป."), unless the dictionary has the abbreviation itself. A string of
+     *   consonants only (มทส. นพ.) stays an abbreviation even when the dictionary has it without the
+     *   full stop.
      *
+     * @param runes code points of the normalized text
+     * @param i start code point index of the match
      * @param end index of the code point after the match
+     * @param abbr the abbreviation string matched by regex
+     * @param prefixes dictionary prefix matches starting at i
      */
-    private boolean abbreviationIsWords(int[] runes, int end, String abbr) {
-        String first = abbr.substring(0, abbr.indexOf('.'));
-        for (String f : OOV_BOUNDARY_WORDS) {
-            if (first.length() > f.length() && first.startsWith(f)) return true;
+    private boolean abbreviationIsWords(int[] runes, int i, int end, String abbr, List<ThaiTrie.PrefixMatch> prefixes) {
+        int dotIdx = abbr.indexOf('.');
+        String first = dotIdx >= 0 ? abbr.substring(0, dotIdx) : abbr;
+        int firstLen = first.codePointCount(0, first.length());
+        int abbrLen = end - i;
+        int dots = countChar(abbr, '.');
+
+        boolean inDict = trie.contains(abbr);
+        if (!inDict) {
+            for (ThaiTrie.PrefixMatch m : prefixes) {
+                if (m.end == i + firstLen + 1 || m.end == i + abbrLen) {
+                    inDict = true;
+                    break;
+                }
+            }
         }
+
+        boolean secondIsSingle = i + firstLen + 2 < runes.length && runes[i + firstLen + 2] == '.';
+
+        if (firstLen == 2
+                && !inDict
+                && i >= 2
+                && runes[i - 1] == 'อ'
+                && (runes[i] == 'ง' || runes[i] == 'น' || runes[i] == 'ม' || runes[i] == 'ย')
+                && runes[i + 1] >= 'ก' && runes[i + 1] <= 'ฮ'
+                && ((dots == 1 && runes[i + 1] == 'จ')
+                    || (dots >= 2 && secondIsSingle
+                        && !first.equals("พล") && !first.equals("สภ") && !first.equals("บก") && !first.equals("บช")))) {
+            return true;
+        }
+
+        if (firstLen >= 3 && !inDict) {
+            for (String f : OOV_BOUNDARY_WORDS) {
+                if (first.length() > f.length() && first.startsWith(f)) {
+                    return true;
+                }
+            }
+            if (firstLen == 3 && dots == 1 && runes[i + 1] == 'ผ' && runes[i + 2] == 'อ') {
+                return true;
+            }
+            if (firstLen == 3
+                    && i >= 1
+                    && runes[i] == 'อ'
+                    && (runes[i + 1] == 'ง' || runes[i + 1] == 'น' || runes[i + 1] == 'ม' || runes[i + 1] == 'ย' || runes[i + 1] == 'ก')
+                    && ((dots >= 2 && secondIsSingle) || (dots == 1 && (runes[i + 2] == 'จ' || runes[i + 2] == 'อ' || runes[i + 2] == 'ต')))) {
+                return true;
+            }
+            for (ThaiTrie.PrefixMatch m : prefixes) {
+                int k = m.end - i;
+                if (k < 2 || k >= firstLen) {
+                    continue;
+                }
+                int remFirst = firstLen - k;
+                boolean isWordPlusAbbr;
+                if (remFirst == 2) {
+                    isWordPlusAbbr = m.weight > 1.2;
+                } else if (dots >= 2) {
+                    isWordPlusAbbr = secondIsSingle && (k == 3 || m.weight > 1.2);
+                } else if (firstLen == 4) {
+                    int ch = runes[i + 3];
+                    isWordPlusAbbr = ch == 'จ' || ch == 'อ' || ch == 'ต' || ch == 'ม' || ch == 'ภ';
+                } else {
+                    int ch = runes[i + 2];
+                    isWordPlusAbbr = m.weight > 1.5 && (ch == 'จ' || ch == 'ม');
+                }
+                if (isWordPlusAbbr) {
+                    return true;
+                }
+            }
+            if (firstLen == 4 && dots >= 2) {
+                String sub = new String(runes, i + 1, 2);
+                if (trie.contains(sub)) {
+                    return true;
+                }
+            }
+        }
+
         boolean nextIsThai = end < runes.length && runes[end] >= 0x0E01 && runes[end] <= 0x0E5B;
-        return countChar(abbr, '.') == 1
+        return dots == 1
             && abbr.endsWith(".")
-            && first.codePointCount(0, first.length()) >= 2
+            && firstLen >= 2
             && first.codePoints().anyMatch(c -> c < 'ก' || c > 'ฮ')
             && !nextIsThai
             && trie.contains(first)
-            && !trie.contains(abbr);
+            && !inDict;
     }
 
     /**

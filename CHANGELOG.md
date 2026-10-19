@@ -13,6 +13,10 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
   cluster rules of the thai-break core (`ThaiTccDfa`) instead of `java.util.regex`, which took about 40%
   of the tokenizer's time. Tokenizing news text is about 1.6x faster. The tokens are identical, so no
   reindex is needed.
+- **Align segmentation rules with thai-break.**
+  - Closed `-็อ-` syllables (`ต็อด`, `ล็อก`, `ม็อบ`) stay a single TCC cluster.
+  - Improved segmentation of words before abbreviations: common words (`พบพล.อ.`), `cอc` words before `จ.` or multi-dot abbreviations (`รอยพ.ต.ท.`), and words like `นายกอบต.`.
+  - Titles (`นาย`, `หมอ`) no longer steal the initial `ก` of following names (`นายกษิต` -> `นาย|กษิต`, `หมอกฤษฏ์` -> `หมอ|กฤษฏ์`).
 
 ## [v1.6.2] — 2026-10-16
 
