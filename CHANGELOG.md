@@ -7,6 +7,10 @@ Versioning follows `<opensearch.version>.0` (e.g. `2.18.0.0` for OpenSearch 2.18
 
 ## [Unreleased]
 
+### Changed
+- `ThaiTccDfa` is regenerated from the minimized DFA of thai-break (general rules 164 to 54 states, lookahead
+  18 to 12): the tables are about three times smaller. Tokens are unchanged, so no reindex is needed.
+
 ## [v1.7.0] — 2026-10-19
 
 ### Changed
